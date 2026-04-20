@@ -270,11 +270,11 @@ function alarmHTML(i, variant='list') {
   return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
     ${topTags}
     ${doneOverlay}
-    <div class="alarm-time">${i.time}</div>
-    <div class="alarm-name">${i.drug.name}</div>
     <div class="alarm-image-wrap">
       ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     </div>
+    <div class="alarm-name">${i.drug.name}</div>
+    <div class="alarm-time">${i.time}</div>
     <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
     <div class="alarm-support">
       ${overdueInfo}
