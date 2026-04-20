@@ -18,6 +18,10 @@ let editId   = null;
 let stockVal = 30;
 let timeSlots = [];
 let alarmTimers = [];
+let pushReady = false;
+
+const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
+const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 
 // ── INIT ──
 updateHeaderDate();
@@ -26,10 +30,15 @@ openDefaultTab();
 scheduleAlarms();
 checkNotifBanner();
 setInterval(updateHeaderDate, 60000);
+setTimeout(() => {
+  if (Notification.permission === 'granted') setupWebPush().catch(()=>{});
+}, 1200);
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  navigator.serviceWorker.register('sw.js')
+    .then(() => { pushReady = true; })
+    .catch(()=>{});
 }
 
 function updateHeaderDate() {
@@ -170,6 +179,7 @@ function toggleTaken(key) {
   saveDrugs(drugs); saveLog(takenLog);
   renderToday();
   renderDrugs();
+  syncPushSchedule();
 }
 
 function renderStats() {
@@ -298,6 +308,7 @@ function saveDrug() {
   else { drugs.push(drug); logHistory(drug.id,'İlaç eklendi'); }
   saveDrugs(drugs);
   closeModal(); renderAll(); scheduleAlarms();
+  syncPushSchedule();
 }
 
 function deleteDrug() {
@@ -305,6 +316,7 @@ function deleteDrug() {
   logHistory(editId,'İlaç silindi');
   drugs = drugs.filter(d=>d.id!=editId);
   saveDrugs(drugs); closeModal(); renderAll();
+  syncPushSchedule();
 }
 
 // ── DETAIL ──
@@ -348,18 +360,26 @@ function addStockPrompt(id) {
 
 // ── NOTIFICATIONS ──
 function checkNotifBanner() {
-  if (!('Notification' in window) || Notification.permission==='granted') return;
+  if (!('Notification' in window)) return;
+  if (!isWebPushCapable()) {
+    document.getElementById('notif-prompt').innerHTML = `
+      <div class="notif-banner">ℹ️ Kalıcı bildirim için uygulamayı iPhone ana ekranına ekleyin.</div>`;
+    return;
+  }
+  if (Notification.permission==='granted') return;
   document.getElementById('notif-prompt').innerHTML = `
     <div class="notif-banner">🔔 Alarm bildirimleri için izin ver
       <button onclick="requestNotif()">İzin Ver</button>
     </div>`;
 }
 
-function requestNotif() {
+async function requestNotif() {
   if (!('Notification' in window)) { alert('Bu tarayıcı bildirimleri desteklemiyor.'); return; }
-  Notification.requestPermission().then(p => {
-    if (p==='granted') { document.getElementById('notif-prompt').innerHTML=''; scheduleAlarms(); }
-  });
+  const p = await Notification.requestPermission();
+  if (p !== 'granted') return;
+  document.getElementById('notif-prompt').innerHTML='';
+  await setupWebPush();
+  scheduleAlarms();
 }
 
 function scheduleAlarms() {
@@ -383,6 +403,93 @@ function scheduleAlarms() {
       alarmTimers.push(timer);
     });
   });
+}
+
+function isWebPushCapable() {
+  return (
+    window.isSecureContext &&
+    'serviceWorker' in navigator &&
+    'PushManager' in window &&
+    'Notification' in window
+  );
+}
+
+function isStandalonePwa() {
+  return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function buildAlarmPlan() {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul';
+  return drugs.flatMap(d => {
+    if (!d.alarm || !Array.isArray(d.times)) return [];
+    return d.times.map(t => ({
+      drugId: d.id,
+      name: d.name,
+      time: t,
+      daily: d.daily || 1,
+      timezone,
+    }));
+  });
+}
+
+async function postPushJSON(path, payload) {
+  if (!PUSH_SERVER_BASE_URL) return;
+  const res = await fetch(`${PUSH_SERVER_BASE_URL}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error(`Push API hata: ${res.status}`);
+}
+
+async function setupWebPush() {
+  if (!isWebPushCapable()) return;
+  if (!isStandalonePwa()) return;
+  if (!PUSH_PUBLIC_KEY || !PUSH_SERVER_BASE_URL) {
+    console.warn('PUSH_PUBLIC_KEY veya PUSH_SERVER_BASE_URL ayarlı değil.');
+    return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  let subscription = await reg.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(PUSH_PUBLIC_KEY),
+    });
+  }
+  await postPushJSON('/api/push/subscriptions', {
+    subscription,
+    userAgent: navigator.userAgent,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul',
+    standalone: isStandalonePwa(),
+  });
+  await syncPushSchedule();
+}
+
+async function syncPushSchedule() {
+  if (!PUSH_SERVER_BASE_URL) return;
+  if (!isWebPushCapable() || Notification.permission !== 'granted') return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const subscription = await reg.pushManager.getSubscription();
+    if (!subscription) return;
+    await postPushJSON('/api/push/schedules', {
+      endpoint: subscription.endpoint,
+      alarms: buildAlarmPlan(),
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('Push schedule sync hatası:', err);
+  }
 }
 
 // ── UTILS ──
@@ -417,6 +524,7 @@ function importData() {
         renderAll();
         renderHistoryPage();
         scheduleAlarms();
+        syncPushSchedule();
         alert('Yedek başarıyla yüklendi.');
       } catch (err) {
         alert('Dosya okunamadı. Lütfen geçerli bir JSON dosyası seçin.');

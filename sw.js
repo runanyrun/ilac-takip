@@ -1,4 +1,4 @@
-const CACHE = 'ilac-takip-v3';
+const CACHE = 'ilac-takip-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -37,7 +37,41 @@ self.addEventListener('fetch', e => {
   );
 });
 
+self.addEventListener('push', e => {
+  let payload = {
+    title: '💊 İlaç Zamanı',
+    body: 'İlacınızı almayı unutmayın.',
+    tag: 'ilac-reminder',
+    url: './',
+  };
+
+  if (e.data) {
+    try {
+      payload = { ...payload, ...e.data.json() };
+    } catch (_) {
+      const text = e.data.text();
+      if (text) payload.body = text;
+    }
+  }
+
+  e.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      tag: payload.tag,
+      data: {
+        url: payload.url || './',
+        drugId: payload.drugId || null,
+        alarmTime: payload.alarmTime || null,
+      },
+      badge: payload.badge || undefined,
+      icon: payload.icon || undefined,
+      renotify: true,
+    })
+  );
+});
+
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  e.waitUntil(clients.openWindow('./'));
+  const targetUrl = (e.notification.data && e.notification.data.url) || './';
+  e.waitUntil(clients.openWindow(targetUrl));
 });

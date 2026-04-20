@@ -1,8 +1,10 @@
 {
   "name": "İlaç Takip",
   "short_name": "İlaç Takip",
+  "id": "/ilac-takip",
   "description": "İlaç kutusu takip ve alarm uygulaması",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#1a3a5c",
