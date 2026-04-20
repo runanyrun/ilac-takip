@@ -258,7 +258,9 @@ function alarmHTML(i, variant='list') {
     ? `<div class="alarm-overdue-text">${formatDelayText(i.diff)}</div>`
     : '';
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
-  const usage = usageConditionLabel(usageCondition);
+  const usageDisplay = usageCondition === 'tok'
+    ? '🍽 TOK'
+    : (usageCondition === 'ac' ? '⚠️ AÇ' : 'ℹ️ FARK ETMEZ');
   return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
     ${topTags}
     ${doneOverlay}
@@ -267,7 +269,7 @@ function alarmHTML(i, variant='list') {
       <div class="alarm-time">${i.time}</div>
       ${overdueInfo}
       <div class="alarm-name">${i.drug.name}</div>
-      <div class="alarm-usage-badge ${usageCondition}">${usage}</div>
+      <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
     </div>
     <div class="alarm-action-wrap">
