@@ -19,6 +19,16 @@ function usageConditionLabel(v) {
   return ({ ac:'Aç', tok:'Tok', fark_etmez:'Fark etmez' })[normalizeUsageCondition(v)];
 }
 
+function formatDelayText(totalMins) {
+  const mins = Math.max(0, Math.abs(parseInt(totalMins, 10) || 0));
+  const days = Math.floor(mins / 1440);
+  const hours = Math.floor((mins % 1440) / 60);
+  const restMins = mins % 60;
+  if (days > 0) return `${days} gün ${hours} saat gecikti`;
+  if (hours > 0) return `${hours} saat ${restMins} dk gecikti`;
+  return `${restMins} dk gecikti`;
+}
+
 function normalizeDrug(d) {
   return { ...d, usageCondition: normalizeUsageCondition(d && d.usageCondition) };
 }
@@ -245,7 +255,7 @@ function alarmHTML(i, variant='list') {
   ` : '';
   const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
   const overdueInfo = (variant === 'focus' && !i.done && i.overdue)
-    ? `<div class="alarm-overdue-text">${Math.abs(i.diff)} dk gecikti</div>`
+    ? `<div class="alarm-overdue-text">${formatDelayText(i.diff)}</div>`
     : '';
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usage = usageConditionLabel(usageCondition);
