@@ -50,7 +50,7 @@ saveDrugs(drugs);
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js')
+  navigator.serviceWorker.register('sw.js?v=5')
     .then(() => { pushReady = true; })
     .catch(()=>{});
 }

@@ -1,4 +1,4 @@
-const CACHE = 'ilac-takip-v4';
+const CACHE = 'ilac-takip-v5';
 const APP_SHELL = [
   './',
   './index.html',
