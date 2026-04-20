@@ -70,6 +70,16 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   letter-spacing: 0.6px;
   margin: 18px 0 12px;
 }
+.alarm-section-title-focus {
+  margin-top: 8px;
+  color: #b54f29;
+}
+.empty-list-note {
+  margin: -2px 0 12px;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 700;
+}
 .alarm-item {
   background: var(--surface);
   border-radius: 18px;
@@ -107,6 +117,54 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   opacity: 0.62;
   background: #f7faf8;
   border-color: #d7ebdd;
+}
+.alarm-item.focus {
+  padding: 16px;
+  gap: 16px;
+}
+.alarm-item.compact {
+  padding: 10px 11px;
+  gap: 10px;
+  border-radius: 14px;
+}
+.alarm-item.compact .alarm-photo,
+.alarm-item.compact .alarm-photo-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+}
+.alarm-item.compact .alarm-time {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+.alarm-item.compact .alarm-name {
+  font-size: 16px;
+  margin-bottom: 3px;
+}
+.alarm-item.compact .alarm-dose {
+  font-size: 12px;
+}
+.alarm-item.compact .alarm-action-wrap {
+  min-width: 86px;
+  gap: 6px;
+}
+.alarm-item.compact .alarm-action {
+  min-height: 46px;
+  font-size: 14px;
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+.alarm-item.compact .alarm-status-tag {
+  font-size: 11px;
+  padding: 5px 6px;
+}
+.alarm-item.compact .alarm-item-top-tags {
+  top: 6px;
+  left: 6px;
+}
+.alarm-item.compact .alarm-flag {
+  font-size: 10px;
+  padding: 3px 6px;
 }
 .alarm-item-top-tags {
   position: absolute;
@@ -237,6 +295,12 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   .alarm-dose { font-size: 14px; }
   .alarm-action-wrap { min-width: 104px; }
   .alarm-action { min-height: 64px; font-size: 17px; }
+  .alarm-item.compact .alarm-photo, .alarm-item.compact .alarm-photo-placeholder { width: 56px; height: 56px; }
+  .alarm-item.compact .alarm-time { font-size: 20px; }
+  .alarm-item.compact .alarm-name { font-size: 14px; }
+  .alarm-item.compact .alarm-dose { font-size: 11px; }
+  .alarm-item.compact .alarm-action-wrap { min-width: 78px; }
+  .alarm-item.compact .alarm-action { min-height: 42px; font-size: 12px; }
 }
 
 .history-item { background: var(--surface); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }

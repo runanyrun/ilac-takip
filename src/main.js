@@ -119,25 +119,59 @@ function renderToday() {
   items.sort((a,b) => a.mins - b.mins);
   if (!items.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><h3>Bugün alarm yok</h3></div>`; return; }
   const pending = items.filter(i=>!i.done).map(i => ({ ...i, overdue: i.diff < 0 }));
-  const nearestUpcoming = pending
-    .filter(i => !i.overdue)
-    .sort((a,b) => a.diff - b.diff)[0];
-  const nearestOverdue = pending
+  const done = items.filter(i=>i.done);
+
+  const overduePending = pending
     .filter(i => i.overdue)
-    .sort((a,b) => b.diff - a.diff)[0];
-  const focusKey = nearestUpcoming ? nearestUpcoming.key : (nearestOverdue ? nearestOverdue.key : null);
-  pending.forEach(i => { i.isNow = i.key === focusKey; });
-  const done    = items.filter(i=>i.done);
+    .sort((a,b) => a.diff - b.diff); // en negatif diff en eski gecikmiş
+  const upcomingPending = pending
+    .filter(i => !i.overdue)
+    .sort((a,b) => a.diff - b.diff);
+  const focusItem = overduePending[0] || upcomingPending[0] || null;
+
+  pending.forEach(i => { i.isNow = !!focusItem && i.key === focusItem.key; });
+
+  const otherPending = pending.filter(i => !i.isNow)
+    .sort((a,b) => {
+      if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+      return a.diff - b.diff;
+    });
+
   let html = '';
-  if (pending.length) { html += `<div class="alarm-section-title">Bekleyen (${pending.length})</div>`; html += pending.map(alarmHTML).join(''); }
-  if (done.length)    { html += `<div class="alarm-section-title">Tamamlandı (${done.length})</div>`;  html += done.map(alarmHTML).join(''); }
-  cont.innerHTML = html;
+  html += renderFocusCard(focusItem);
+  html += renderList(otherPending, done);
+  cont.innerHTML = html || `<div class="empty-state"><div class="emoji">🎉</div><h3>Bugün için bekleyen ilaç kalmadı</h3></div>`;
   renderStats();
 }
 
-function alarmHTML(i) {
+function renderFocusCard(item) {
+  if (!item) return '';
+  const title = item.overdue ? 'Acil Alman Gereken' : 'Şimdi Alman Gereken';
+  return `
+    <div class="alarm-section-title alarm-section-title-focus">${title}</div>
+    ${alarmHTML(item, 'focus')}
+  `;
+}
+
+function renderList(pending, done) {
+  let html = '';
+  if (pending.length) {
+    html += `<div class="alarm-section-title">Diğerleri (${pending.length})</div>`;
+    html += pending.map(i => alarmHTML(i, 'list')).join('');
+  } else {
+    html += `<div class="alarm-section-title">Diğerleri</div><div class="empty-list-note">Başka bekleyen ilaç yok.</div>`;
+  }
+  if (done.length) {
+    html += `<div class="alarm-section-title">Tamamlandı (${done.length})</div>`;
+    html += done.map(i => alarmHTML(i, 'list')).join('');
+  }
+  return html;
+}
+
+function alarmHTML(i, variant='list') {
   const classes = [
     'alarm-item',
+    variant === 'focus' ? 'focus' : 'compact',
     i.done ? 'done' : 'pending',
     i.isNow ? 'now' : '',
     (!i.done && i.overdue) ? 'overdue' : '',
