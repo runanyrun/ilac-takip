@@ -2,6 +2,7 @@
 const LS_DRUGS   = 'ilac_drugs_v2';
 const LS_LOG     = 'ilac_log_v2';
 const LS_HISTORY = 'ilac_history_v2';
+const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 
 function loadDrugs()   { try { return JSON.parse(localStorage.getItem(LS_DRUGS))   || []; } catch(e){ return []; } }
 function loadLog()     { try { return JSON.parse(localStorage.getItem(LS_LOG))     || {}; } catch(e){ return {}; } }
@@ -45,7 +46,11 @@ let takingState = {};
 
 const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
+const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
+const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
 const APP_VERSION = '20260420';
+let fcmSwRegistrationPromise = null;
+let fcmOnMessageBound = false;
 
 // ── INIT ──
 updateHeaderDate();
@@ -55,7 +60,10 @@ scheduleAlarms();
 checkNotifBanner();
 setInterval(updateHeaderDate, 60000);
 setTimeout(() => {
-  if (Notification.permission === 'granted') setupWebPush().catch(()=>{});
+  if (Notification.permission === 'granted') {
+    setupWebPush().catch(()=>{});
+    setupFirebaseMessaging().catch(()=>{});
+  }
 }, 1200);
 
 saveDrugs(drugs);
@@ -521,7 +529,65 @@ async function requestNotif() {
   if (p !== 'granted') return;
   document.getElementById('notif-prompt').innerHTML='';
   await setupWebPush();
+  await setupFirebaseMessaging();
   scheduleAlarms();
+}
+
+function hasFirebaseConfig(cfg) {
+  return !!(cfg && cfg.apiKey && cfg.projectId && cfg.messagingSenderId && cfg.appId);
+}
+
+async function getFirebaseMessagingSwRegistration() {
+  if (!('serviceWorker' in navigator)) return null;
+  if (!fcmSwRegistrationPromise) {
+    fcmSwRegistrationPromise = navigator.serviceWorker.register(
+      '/firebase-messaging-sw.js',
+      { scope: '/firebase-cloud-messaging-push-scope' }
+    );
+  }
+  return fcmSwRegistrationPromise;
+}
+
+async function setupFirebaseMessaging() {
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!window.firebase || !window.firebase.messaging) {
+      console.warn('Firebase Messaging SDK yüklenmedi.');
+      return;
+    }
+    if (!hasFirebaseConfig(FIREBASE_CONFIG)) {
+      console.warn('Firebase config eksik. window.__FIREBASE_CONFIG__ değerlerini doldurun.');
+      return;
+    }
+
+    if (!window.firebase.apps || !window.firebase.apps.length) {
+      window.firebase.initializeApp(FIREBASE_CONFIG);
+    }
+
+    const messaging = window.firebase.messaging();
+    const swReg = await getFirebaseMessagingSwRegistration();
+    const token = await messaging.getToken({
+      vapidKey: FCM_VAPID_KEY,
+      serviceWorkerRegistration: swReg,
+    });
+
+    if (token) {
+      localStorage.setItem(LS_FCM_TOKEN, token);
+      console.log('FCM token:', token);
+    } else {
+      console.warn('FCM token alınamadı.');
+    }
+
+    if (!fcmOnMessageBound) {
+      messaging.onMessage((payload) => {
+        console.log('FCM foreground message:', payload);
+      });
+      fcmOnMessageBound = true;
+    }
+  } catch (err) {
+    console.warn('Firebase Messaging kurulumu başarısız:', err);
+  }
 }
 
 function scheduleAlarms() {

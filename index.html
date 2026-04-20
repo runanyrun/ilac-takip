@@ -148,7 +148,19 @@
   // Web Push yapılandırması (deploy ortamında gerçek değerleri verin)
   window.__PUSH_PUBLIC_KEY__ = '';
   window.__PUSH_SERVER_BASE_URL__ = '';
+
+  // Firebase Web App yapılandırması (deployer burada gerçek Firebase config girmeli)
+  window.__FIREBASE_CONFIG__ = {
+    apiKey: '',
+    authDomain: '',
+    projectId: '',
+    storageBucket: '',
+    messagingSenderId: '',
+    appId: '',
+  };
 </script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <script defer src="src/main.js?v=20260420"></script>
 </body>
 </html>
