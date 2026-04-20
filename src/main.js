@@ -95,7 +95,8 @@ function renderDrugs() {
     const stockClass = remaining <= 0 ? 'stock-empty' : (daysLeft <= 7 ? 'stock-low' : 'stock-ok');
     const stockText  = remaining <= 0 ? '❌ Bitti' : (daysLeft <= 7 ? `⚠️ ${daysLeft}g` : `✅ ${daysLeft}g`);
     const durText = d.duration === 'omur_boyu' ? '∞ Ömür boyu' : (d.duration === 'sure' ? `${d.days} gün` : 'Kutu bitince');
-    const usage = usageConditionLabel(d.usageCondition);
+    const usageCondition = normalizeUsageCondition(d.usageCondition);
+    const usage = usageConditionLabel(usageCondition);
     const times = Array.isArray(d.times) ? d.times.filter(Boolean) : [];
     const timeBadges = times.length
       ? times.slice(0,3).map(t => `<span class="pill-badge pill-orange">${t}</span>`).join('') +
@@ -109,7 +110,7 @@ function renderDrugs() {
         <div class="drug-card-meta">${[d.doctor?'Dr.'+d.doctor:'', d.hospital].filter(Boolean).join(' · ')}</div>
         <div class="drug-card-pills">
           <span class="pill-badge pill-blue">Günde ${d.daily}x</span>
-          <span class="pill-badge pill-usage">${usage}</span>
+          <span class="pill-badge pill-usage ${usageCondition}">${usage}</span>
           ${timeBadges}
           <span class="pill-badge pill-gray">${durText}</span>
           ${d.alarm ? '<span class="pill-badge pill-green">🔔</span>' : ''}
@@ -207,7 +208,8 @@ function alarmHTML(i, variant='list') {
   const overdueInfo = (variant === 'focus' && !i.done && i.overdue)
     ? `<div class="alarm-overdue-text">${Math.abs(i.diff)} dk gecikti</div>`
     : '';
-  const usage = usageConditionLabel(i.drug.usageCondition);
+  const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
+  const usage = usageConditionLabel(usageCondition);
   return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
     ${topTags}
     ${doneOverlay}
@@ -216,7 +218,7 @@ function alarmHTML(i, variant='list') {
       <div class="alarm-time">${i.time}</div>
       ${overdueInfo}
       <div class="alarm-name">${i.drug.name}</div>
-      <div class="alarm-usage-badge">${usage}</div>
+      <div class="alarm-usage-badge ${usageCondition}">${usage}</div>
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
     </div>
     <div class="alarm-action-wrap">
