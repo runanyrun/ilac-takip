@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a3a5c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="İlaç Takip">
+<title>İlaç Takip</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary: #1a3a5c;
+  --primary-light: #2a5a8c;
+  --accent: #e8734a;
+  --accent-light: #f0956f;
+  --bg: #f0f4f8;
+  --surface: #ffffff;
+  --surface2: #f7fafc;
+  --text: #1a2a3a;
+  --muted: #7a8fa0;
+  --border: #dde8f0;
+  --green: #2ecc71;
+  --red: #e74c3c;
+  --yellow: #f1c40f;
+  --radius: 20px;
+  --shadow: 0 4px 20px rgba(26,58,92,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-serif; color: var(--text); overflow: hidden; }
+
+/* LAYOUT */
+#app { display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--bg); position: relative; }
+
+/* HEADER */
+.header { background: var(--primary); padding: 52px 20px 20px; color: white; flex-shrink: 0; }
+.header-top { display: flex; align-items: center; justify-content: space-between; }
+.header h1 { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+.header p { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+.header-actions { display: flex; gap: 8px; }
+.icon-btn { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,0.15); border: none; color: white; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+.icon-btn:active { background: rgba(255,255,255,0.3); }
+
+/* TODAY SUMMARY */
+.today-bar { background: var(--primary-light); margin: 0 20px; border-radius: 0 0 16px 16px; padding: 10px 16px; display: flex; gap: 16px; }
+.today-stat { flex: 1; text-align: center; }
+.today-stat .num { font-size: 20px; font-weight: 900; color: white; }
+.today-stat .lbl { font-size: 10px; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* TABS */
+.tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.tab { flex: 1; padding: 14px 4px; text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); border: none; background: none; cursor: pointer; transition: color 0.2s; letter-spacing: 0.3px; position: relative; }
+.tab.active { color: var(--primary); }
+.tab.active::after { content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 3px; background: var(--accent); border-radius: 3px 3px 0 0; }
+
+/* SCROLL CONTENT */
+.content { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.content::-webkit-scrollbar { display: none; }
+
+/* PAGE */
+.page { display: none; }
+.page.active { display: block; }
+
+/* DRUG CARD */
+.drug-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.drug-card:active { transform: scale(0.98); }
+.drug-card-img {
+  width: 68px; height: 68px; border-radius: 14px;
+  object-fit: cover; flex-shrink: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+.drug-card-img-placeholder {
+  width: 68px; height: 68px; border-radius: 14px;
+  background: var(--bg); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; border: 1px solid var(--border);
+}
+.drug-card-info { flex: 1; min-width: 0; }
+.drug-card-name { font-size: 16px; font-weight: 800; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drug-card-meta { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.drug-card-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.pill-blue { background: #e8f0f8; color: var(--primary); }
+.pill-orange { background: #fdeee6; color: var(--accent); }
+.pill-green { background: #e8f8ee; color: #27ae60; }
+.pill-red { background: #fdeaea; color: var(--red); }
+.pill-gray { background: var(--bg); color: var(--muted); }
+
+.drug-card-stock { position: absolute; top: 14px; right: 14px; font-size: 11px; font-weight: 700; }
+.stock-ok { color: var(--green); }
+.stock-low { color: var(--yellow); }
+.stock-empty { color: var(--red); }
+
+.drug-card-stripe {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+}
+
+/* ALARM ITEMS */
+.alarm-section-title { font-size: 13px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 10px; }
+.alarm-item {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 10px rgba(26,58,92,0.07);
+}
+.alarm-time { font-size: 26px; font-weight: 900; color: var(--primary); min-width: 70px; }
+.alarm-info { flex: 1; }
+.alarm-name { font-size: 14px; font-weight: 800; }
+.alarm-dose { font-size: 12px; color: var(--muted); }
+.alarm-check { width: 36px; height: 36px; border-radius: 12px; border: 2px solid var(--border); background: none; font-size: 16px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
+.alarm-check.done { background: var(--green); border-color: var(--green); color: white; }
+
+/* HISTORY */
+.history-item { background: var(--surface); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+.history-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.history-text { flex: 1; font-size: 13px; }
+.history-text strong { font-weight: 800; }
+.history-date { font-size: 11px; color: var(--muted); }
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 24px; right: 50%;
+  transform: translateX(50%) translateX(min(160px, 30vw));
+  width: 58px; height: 58px; border-radius: 20px;
+  background: var(--accent); color: white;
+  font-size: 28px; border: none; cursor: pointer;
+  box-shadow: 0 8px 24px rgba(232,115,74,0.45);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+  z-index: 100;
+}
+.fab:active { transform: translateX(50%) translateX(min(160px, 30vw)) scale(0.93); }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(10,20,35,0.6);
+  z-index: 200; display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border-radius: 28px 28px 0 0;
+  width: 100%; max-width: 480px; margin: 0 auto;
+  padding: 24px 20px 40px;
+  transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  max-height: 92dvh; overflow-y: auto;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle { width: 40px; height: 4px; background: var(--border); border-radius: 4px; margin: 0 auto 20px; }
+.modal-title { font-size: 20px; font-weight: 900; margin-bottom: 20px; }
+
+/* FORM */
+.form-group { margin-bottom: 16px; }
+.form-label { font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%; padding: 14px 16px; border-radius: 14px;
+  border: 1.5px solid var(--border); background: var(--surface2);
+  font-family: 'Nunito', sans-serif; font-size: 15px; color: var(--text);
+  outline: none; transition: border-color 0.2s;
+}
+.form-input:focus { border-color: var(--primary-light); }
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+
+/* PHOTO UPLOAD */
+.photo-upload {
+  border: 2px dashed var(--border); border-radius: 16px;
+  padding: 20px; text-align: center; cursor: pointer;
+  transition: border-color 0.2s; background: var(--surface2);
+  position: relative;
+}
+.photo-upload:active { border-color: var(--accent); }
+.photo-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.photo-upload .icon { font-size: 32px; margin-bottom: 6px; }
+.photo-upload p { font-size: 13px; color: var(--muted); font-weight: 700; }
+.photo-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 14px; display: none; }
+
+/* TIME SLOTS */
+.time-slots { display: flex; flex-wrap: wrap; gap: 8px; }
+.time-slot { display: flex; align-items: center; gap: 6px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 12px; padding: 8px 10px; }
+.time-slot input[type=time] { border: none; background: none; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700; color: var(--primary); outline: none; width: 90px; }
+.time-slot-remove { background: none; border: none; color: var(--red); font-size: 18px; cursor: pointer; padding: 0; line-height: 1; }
+.add-time-btn { background: var(--bg); border: 1.5px dashed var(--border); border-radius: 12px; padding: 8px 14px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+
+/* TOGGLE */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border-radius: 14px; padding: 14px 16px; }
+.toggle-label { font-size: 14px; font-weight: 700; }
+.toggle { position: relative; width: 48px; height: 28px; }
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: var(--border); border-radius: 28px; cursor: pointer; transition: background 0.2s; }
+.toggle-slider::before { content: ''; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.toggle input:checked + .toggle-slider { background: var(--primary); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+
+/* SUBMIT BTN */
+.btn-primary { width: 100%; padding: 16px; background: var(--primary); color: white; border: none; border-radius: 16px; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 800; cursor: pointer; transition: background 0.2s; margin-top: 8px; }
+.btn-primary:active { background: var(--primary-light); }
+.btn-danger { background: var(--red); }
+
+/* DETAIL MODAL */
+.detail-img { width: 100%; height: 180px; object-fit: cover; border-radius: 16px; margin-bottom: 16px; background: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 60px; }
+.detail-title { font-size: 24px; font-weight: 900; }
+.detail-subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; margin-bottom: 16px; }
+.detail-section { margin-bottom: 16px; }
+.detail-section-title { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.detail-stat { background: var(--surface2); border-radius: 12px; padding: 12px; }
+.detail-stat .val { font-size: 20px; font-weight: 900; color: var(--primary); }
+.detail-stat .key { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.stock-history-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.stock-history-item:last-child { border-bottom: none; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 48px 24px; }
+.empty-state .emoji { font-size: 52px; margin-bottom: 16px; }
+.empty-state h3 { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+.empty-state p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* NOTIFICATION BANNER */
+.notif-banner { background: var(--primary); color: white; padding: 12px 16px; border-radius: 14px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 700; }
+.notif-banner button { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 8px; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+
+/* SELECT */
+select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a8fa0' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+/* STOCK COUNTER */
+.stock-counter { display: flex; align-items: center; gap: 12px; }
+.stock-counter button { width: 40px; height: 40px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface2); font-size: 20px; cursor: pointer; font-weight: 700; color: var(--primary); display: flex; align-items: center; justify-content: center; }
+.stock-counter .val { font-size: 22px; font-weight: 900; min-width: 50px; text-align: center; }
+
+/* ANIM */
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+.drug-card { animation: slideUp 0.3s ease both; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>💊 İlaç Takip</h1>
+        <p id="header-date">Yükleniyor...</p>
+      </div>
+      <div class="header-actions">
+        <button class="icon-btn" onclick="requestNotifPermission()" title="Bildirimler">🔔</button>
+        <button class="icon-btn" onclick="exportData()" title="Yedekle">💾</button>
+      </div>
+    </div>
+  </div>
+  <div class="today-bar">
+    <div class="today-stat"><div class="num" id="stat-total">0</div><div class="lbl">İlaç</div></div>
+    <div class="today-stat"><div class="num" id="stat-today">0</div><div class="lbl">Bugün Alarm</div></div>
+    <div class="today-stat"><div class="num" id="stat-done">0</div><div class="lbl">Alındı</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('ilaçlar', this)">💊 İlaçlar</button>
+    <button class="tab" onclick="switchTab('bugün', this)">📅 Bugün</button>
+    <button class="tab" onclick="switchTab('geçmiş', this)">📋 Geçmiş</button>
+  </div>
+
+  <div class="content">
+    <!-- İLAÇLAR -->
+    <div class="page active" id="page-ilaçlar">
+      <div id="notif-prompt"></div>
+      <div id="drug-list"></div>
+    </div>
+
+    <!-- BUGÜN -->
+    <div class="page" id="page-bugün">
+      <div id="today-alarms"></div>
+    </div>
+
+    <!-- GEÇMİŞ -->
+    <div class="page" id="page-geçmiş">
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <button class="fab" id="fab-btn" onclick="openAddModal()">+</button>
+</div>
+
+<!-- ADD DRUG MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">Yeni İlaç Ekle</div>
+
+    <!-- Fotoğraf -->
+    <div class="form-group">
+      <label class="form-label">Kutu Fotoğrafı</label>
+      <div class="photo-upload" id="photo-upload-area">
+        <input type="file" accept="image/*" capture="environment" id="photo-input" onchange="handlePhoto(event)">
+        <div id="photo-placeholder">
+          <div class="icon">📷</div>
+          <p>Fotoğraf çek veya galeriden seç</p>
+        </div>
+        <img class="photo-preview" id="photo-preview">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">İlaç Adı *</label>
+      <input type="text" class="form-input" id="drug-name" placeholder="Örn: Beloc Zok 50mg">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Doktor</label>
+        <input type="text" class="form-input" id="drug-doctor" placeholder="Dr. Adı">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hastane</label>
+        <input type="text" class="form-input" id="drug-hospital" placeholder="Hastane adı">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Reçete Tarihi</label>
+        <input type="date" class="form-input" id="drug-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Günde Kaç Adet</label>
+        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1" placeholder="1">
+      </div>
+    </div>
+
+    <!-- Kullanım süresi -->
+    <div class="form-group">
+      <label class="form-label">Kullanım Süresi</label>
+      <select class="form-input" id="drug-duration" onchange="toggleDuration()">
+        <option value="omur_boyu">Ömür Boyu</option>
+        <option value="sure">Belirli Süre</option>
+        <option value="adet">Belirli Adet Bitince</option>
+      </select>
+    </div>
+    <div id="duration-days-wrap" class="form-group" style="display:none">
+      <label class="form-label">Kaç Gün</label>
+      <input type="number" class="form-input" id="drug-days" min="1" placeholder="30">
+    </div>
+
+    <!-- Alım saatleri -->
+    <div class="form-group">
+      <label class="form-label">Alarm Saatleri</label>
+      <div class="time-slots" id="time-slots"></div>
+      <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
+    </div>
+
+    <!-- Kutu stok -->
+    <div class="form-group">
+      <label class="form-label">Kutudaki Tablet/Kapsül Adedi</label>
+      <div class="stock-counter">
+        <button onclick="changeStock(-10)">−10</button>
+        <button onclick="changeStock(-1)">−</button>
+        <div class="val" id="stock-val">30</div>
+        <button onclick="changeStock(1)">+</button>
+        <button onclick="changeStock(10)">+10</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="toggle-row">
+        <span class="toggle-label">🔔 Alarm Aktif</span>
+        <label class="toggle"><input type="checkbox" id="drug-alarm" checked><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveDrug()">✅ Kaydet</button>
+    <button class="btn-primary btn-danger" id="delete-btn" style="display:none;margin-top:10px" onclick="deleteDrug()">🗑️ Sil</button>
+    <button style="width:100%;padding:14px;background:none;border:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;margin-top:8px" onclick="closeModal()">İptal</button>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" id="detail-content"></div>
+</div>
+
+<script>
+// ─── STATE ───
+let drugs = [];
+let takenLog = {}; // { "YYYY-MM-DD_drugId_time": true }
+let editId = null;
+let stockVal = 30;
+let alarmTimers = [];
+
+// ─── STORAGE (persistent via window.storage) ───
+async function loadData() {
+  try {
+    const dr = await window.storage.get('ilac_drugs');
+    if (dr) drugs = JSON.parse(dr.value);
+  } catch(e) { drugs = []; }
+  try {
+    const lg = await window.storage.get('ilac_log');
+    if (lg) takenLog = JSON.parse(lg.value);
+  } catch(e) { takenLog = {}; }
+}
+
+async function saveData() {
+  try {
+    await window.storage.set('ilac_drugs', JSON.stringify(drugs));
+    await window.storage.set('ilac_log', JSON.stringify(takenLog));
+  } catch(e) { console.log('Storage error', e); }
+}
+
+// ─── INIT ───
+(async () => {
+  await loadData();
+  updateHeaderDate();
+  renderAll();
+  scheduleAlarms();
+  checkNotifPermission();
+  setInterval(updateHeaderDate, 60000);
+})();
+
+function updateHeaderDate() {
+  const now = new Date();
+  const opts = { weekday:'long', day:'numeric', month:'long' };
+  document.getElementById('header-date').textContent = now.toLocaleDateString('tr-TR', opts);
+}
+
+// ─── TABS ───
+function switchTab(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'bugün') renderToday();
+  if (name === 'geçmiş') renderHistory();
+  if (name === 'ilaçlar') renderDrugs();
+}
+
+// ─── RENDER DRUGS ───
+function renderAll() {
+  renderDrugs();
+  renderToday();
+  renderStats();
+}
+
+function renderDrugs() {
+  const list = document.getElementById('drug-list');
+  if (!drugs.length) {
+    list.innerHTML = `<div class="empty-state"><div class="emoji">💊</div><h3>Henüz ilaç eklenmedi</h3><p>Sağ alttaki + butonuna basarak annene ait ilaçları ekleyebilirsin.</p></div>`;
+    return;
+  }
+  const colors = ['#1a3a5c','#e8734a','#2ecc71','#9b59b6','#3498db','#e74c3c','#1abc9c'];
+  list.innerHTML = drugs.map((d,i) => {
+    const color = colors[i % colors.length];
+    const remaining = d.stock || 0;
+    const dailyDose = parseInt(d.daily) || 1;
+    const daysLeft = Math.floor(remaining / dailyDose);
+    const stockClass = remaining <= 0 ? 'stock-empty' : (daysLeft <= 7 ? 'stock-low' : 'stock-ok');
+    const stockText = remaining <= 0 ? '❌ Bitti' : (daysLeft <= 7 ? `⚠️ ${daysLeft}g` : `✅ ${daysLeft}g`);
+    const durText = d.duration === 'omur_boyu' ? '∞ Ömür boyu' : (d.duration === 'sure' ? `${d.days} gün` : 'Adet baskı');
+    return `<div class="drug-card" onclick="showDetail(${d.id})" style="animation-delay:${i*0.05}s">
+      <div class="drug-card-stripe" style="background:${color}"></div>
+      ${d.photo ? `<img class="drug-card-img" src="${d.photo}" alt="${d.name}">` : `<div class="drug-card-img-placeholder">💊</div>`}
+      <div class="drug-card-info">
+        <div class="drug-card-name">${d.name}</div>
+        <div class="drug-card-meta">${d.doctor ? 'Dr. '+d.doctor : ''} ${d.hospital ? '· '+d.hospital : ''}</div>
+        <div class="drug-card-pills">
+          <span class="pill-badge pill-blue">Günde ${d.daily}x</span>
+          ${d.times && d.times.length ? `<span class="pill-badge pill-orange">${d.times[0]}</span>` : ''}
+          <span class="pill-badge pill-gray">${durText}</span>
+          ${d.alarm ? '<span class="pill-badge pill-green">🔔 Alarm</span>' : ''}
+        </div>
+      </div>
+      <div class="drug-card-stock ${stockClass}">${stockText}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RENDER TODAY ───
+function renderToday() {
+  const cont = document.getElementById('today-alarms');
+  const today = todayStr();
+  if (!drugs.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">📅</div><h3>İlaç bulunamadı</h3><p>İlaç sekmesinden ilaç ekle.</p></div>`; return; }
+
+  // Build alarm list
+  let items = [];
+  drugs.forEach(d => {
+    if (!d.times || !d.times.length) return;
+    d.times.forEach(t => {
+      const key = `${today}_${d.id}_${t}`;
+      items.push({ drug: d, time: t, key, done: !!takenLog[key] });
+    });
+  });
+  items.sort((a,b) => a.time.localeCompare(b.time));
+
+  if (!items.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><h3>Bugün alarm yok</h3><p>Tüm alarmlar tamamlandı!</p></div>`; return; }
+
+  const pending = items.filter(i => !i.done);
+  const done = items.filter(i => i.done);
+  let html = '';
+  if (pending.length) {
+    html += `<div class="alarm-section-title">Bekleyen (${pending.length})</div>`;
+    html += pending.map(i => alarmHTML(i)).join('');
+  }
+  if (done.length) {
+    html += `<div class="alarm-section-title">Tamamlandı (${done.length})</div>`;
+    html += done.map(i => alarmHTML(i)).join('');
+  }
+  cont.innerHTML = html;
+  renderStats();
+}
+
+function alarmHTML(i) {
+  return `<div class="alarm-item">
+    <div class="alarm-time">${i.time}</div>
+    <div class="alarm-info">
+      <div class="alarm-name">${i.drug.name}</div>
+      <div class="alarm-dose">${i.drug.daily} tablet/kapsül • ${i.drug.duration === 'omur_boyu' ? 'Ömür boyu' : (i.drug.duration === 'sure' ? i.drug.days+' günlük' : '')}</div>
+    </div>
+    <button class="alarm-check ${i.done ? 'done' : ''}" onclick="toggleTaken('${i.key}', this)">
+      ${i.done ? '✓' : ''}
+    </button>
+  </div>`;
+}
+
+async function toggleTaken(key, btn) {
+  if (takenLog[key]) {
+    delete takenLog[key];
+    btn.classList.remove('done');
+    btn.textContent = '';
+    // Add stock back
+    const [date, id, time] = key.split('_');
+    const d = drugs.find(x => x.id == id);
+    if (d) { d.stock = (d.stock || 0) + 1; logHistory(d.id, 'İlaç iadesi', time); }
+  } else {
+    takenLog[key] = true;
+    btn.classList.add('done');
+    btn.textContent = '✓';
+    // Reduce stock
+    const [date, id, time] = key.split('_');
+    const d = drugs.find(x => x.id == id);
+    if (d && d.stock > 0) { d.stock = Math.max(0, (d.stock || 0) - 1); logHistory(d.id, 'İlaç alındı', time); }
+  }
+  await saveData();
+  renderStats();
+}
+
+function renderStats() {
+  const today = todayStr();
+  let totalAlarms = 0, doneCnt = 0;
+  drugs.forEach(d => {
+    if (d.times) d.times.forEach(t => {
+      totalAlarms++;
+      if (takenLog[`${today}_${d.id}_${t}`]) doneCnt++;
+    });
+  });
+  document.getElementById('stat-total').textContent = drugs.length;
+  document.getElementById('stat-today').textContent = totalAlarms;
+  document.getElementById('stat-done').textContent = doneCnt;
+}
+
+// ─── HISTORY ───
+let historyLog = [];
+async function loadHistory() {
+  try { const h = await window.storage.get('ilac_history'); if (h) historyLog = JSON.parse(h.value); } catch(e) { historyLog = []; }
+}
+async function logHistory(drugId, action, extra='') {
+  await loadHistory();
+  const d = drugs.find(x => x.id == drugId);
+  historyLog.unshift({ drugId, name: d ? d.name : '?', action, extra, ts: new Date().toISOString() });
+  if (historyLog.length > 200) historyLog = historyLog.slice(0,200);
+  await window.storage.set('ilac_history', JSON.stringify(historyLog));
+}
+async function renderHistory() {
+  await loadHistory();
+  const cont = document.getElementById('history-list');
+  if (!historyLog.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">📋</div><h3>Henüz kayıt yok</h3><p>İlaç alımları burada görünecek.</p></div>`; return; }
+  const colors = { 'İlaç alındı': '#2ecc71', 'İlaç eklendi': '#3498db', 'İlaç silindi': '#e74c3c', 'Stok güncellendi': '#f39c12', 'İlaç iadesi': '#9b59b6' };
+  cont.innerHTML = historyLog.slice(0,50).map(h => {
+    const color = colors[h.action] || '#7a8fa0';
+    const dt = new Date(h.ts);
+    const dtStr = dt.toLocaleDateString('tr-TR') + ' ' + dt.toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'});
+    return `<div class="history-item">
+      <div class="history-dot" style="background:${color}"></div>
+      <div class="history-text"><strong>${h.name}</strong> — ${h.action} ${h.extra ? '('+h.extra+')' : ''}</div>
+      <div class="history-date">${dtStr}</div>
+    </div>`;
+  }).join('');
+}
+
+// ─── MODAL ───
+function openAddModal(drugId=null) {
+  editId = drugId;
+  const modal = document.getElementById('add-modal');
+  document.getElementById('modal-title').textContent = drugId ? 'İlaç Düzenle' : 'Yeni İlaç Ekle';
+  document.getElementById('delete-btn').style.display = drugId ? 'block' : 'none';
+
+  if (drugId) {
+    const d = drugs.find(x => x.id == drugId);
+    document.getElementById('drug-name').value = d.name || '';
+    document.getElementById('drug-doctor').value = d.doctor || '';
+    document.getElementById('drug-hospital').value = d.hospital || '';
+    document.getElementById('drug-date').value = d.date || '';
+    document.getElementById('drug-daily').value = d.daily || 1;
+    document.getElementById('drug-duration').value = d.duration || 'omur_boyu';
+    document.getElementById('drug-days').value = d.days || '';
+    document.getElementById('drug-alarm').checked = d.alarm !== false;
+    stockVal = d.stock || 0;
+    if (d.photo) { document.getElementById('photo-preview').src = d.photo; document.getElementById('photo-preview').style.display = 'block'; document.getElementById('photo-placeholder').style.display = 'none'; }
+    else { document.getElementById('photo-preview').style.display = 'none'; document.getElementById('photo-placeholder').style.display = 'block'; }
+    renderTimeSlots(d.times || []);
+  } else {
+    document.getElementById('drug-name').value = '';
+    document.getElementById('drug-doctor').value = '';
+    document.getElementById('drug-hospital').value = '';
+    document.getElementById('drug-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('drug-daily').value = 1;
+    document.getElementById('drug-duration').value = 'omur_boyu';
+    document.getElementById('drug-days').value = '';
+    document.getElementById('drug-alarm').checked = true;
+    stockVal = 30;
+    document.getElementById('photo-preview').style.display = 'none';
+    document.getElementById('photo-placeholder').style.display = 'block';
+    renderTimeSlots(['08:00']);
+  }
+  document.getElementById('stock-val').textContent = stockVal;
+  toggleDuration();
+  modal.classList.add('open');
+  document.getElementById('detail-modal').classList.remove('open');
+}
+
+function closeModal() {
+  document.getElementById('add-modal').classList.remove('open');
+  document.getElementById('detail-modal').classList.remove('open');
+}
+
+function handlePhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const prev = document.getElementById('photo-preview');
+    prev.src = ev.target.result;
+    prev.style.display = 'block';
+    document.getElementById('photo-placeholder').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+// TIME SLOTS
+let timeSlots = [];
+function renderTimeSlots(times) {
+  timeSlots = [...times];
+  const wrap = document.getElementById('time-slots');
+  wrap.innerHTML = timeSlots.map((t,i) => `
+    <div class="time-slot">
+      <input type="time" value="${t}" onchange="timeSlots[${i}]=this.value">
+      <button class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
+    </div>`).join('');
+}
+function addTimeSlot() { timeSlots.push('12:00'); renderTimeSlots(timeSlots); }
+function removeTimeSlot(i) { timeSlots.splice(i,1); renderTimeSlots(timeSlots); }
+
+function toggleDuration() {
+  const v = document.getElementById('drug-duration').value;
+  document.getElementById('duration-days-wrap').style.display = v === 'sure' ? 'block' : 'none';
+}
+
+function changeStock(delta) {
+  stockVal = Math.max(0, stockVal + delta);
+  document.getElementById('stock-val').textContent = stockVal;
+}
+
+async function saveDrug() {
+  const name = document.getElementById('drug-name').value.trim();
+  if (!name) { alert('İlaç adı zorunlu!'); return; }
+  const photo = document.getElementById('photo-preview').src && document.getElementById('photo-preview').style.display !== 'none' ? document.getElementById('photo-preview').src : null;
+
+  const drug = {
+    id: editId || Date.now(),
+    name,
+    doctor: document.getElementById('drug-doctor').value.trim(),
+    hospital: document.getElementById('drug-hospital').value.trim(),
+    date: document.getElementById('drug-date').value,
+    daily: parseInt(document.getElementById('drug-daily').value) || 1,
+    duration: document.getElementById('drug-duration').value,
+    days: document.getElementById('drug-days').value,
+    alarm: document.getElementById('drug-alarm').checked,
+    times: [...timeSlots],
+    stock: stockVal,
+    photo,
+    createdAt: editId ? (drugs.find(d=>d.id==editId)||{}).createdAt : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (editId) {
+    const idx = drugs.findIndex(d => d.id == editId);
+    drugs[idx] = drug;
+    logHistory(drug.id, 'Stok güncellendi', 'düzenlendi');
+  } else {
+    drugs.push(drug);
+    logHistory(drug.id, 'İlaç eklendi');
+  }
+
+  await saveData();
+  closeModal();
+  renderAll();
+  scheduleAlarms();
+}
+
+async function deleteDrug() {
+  if (!editId) return;
+  if (!confirm('Bu ilacı silmek istediğinden emin misin?')) return;
+  logHistory(editId, 'İlaç silindi');
+  drugs = drugs.filter(d => d.id != editId);
+  await saveData();
+  closeModal();
+  renderAll();
+}
+
+// ─── DETAIL ───
+function showDetail(id) {
+  const d = drugs.find(x => x.id == id);
+  if (!d) return;
+  const remaining = d.stock || 0;
+  const dailyDose = parseInt(d.daily) || 1;
+  const daysLeft = Math.floor(remaining / dailyDose);
+
+  // Count taken today
+  const today = todayStr();
+  const takenToday = d.times ? d.times.filter(t => takenLog[`${today}_${d.id}_${t}`]).length : 0;
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="modal-handle"></div>
+    ${d.photo ? `<img src="${d.photo}" style="width:100%;height:180px;object-fit:cover;border-radius:16px;margin-bottom:16px">` : `<div style="width:100%;height:100px;background:var(--bg);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:50px;margin-bottom:16px">💊</div>`}
+    <div class="detail-title">${d.name}</div>
+    <div class="detail-subtitle">${[d.doctor ? 'Dr. '+d.doctor : '', d.hospital, d.date ? formatDate(d.date) : ''].filter(Boolean).join(' · ')}</div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Durum</div>
+      <div class="detail-grid">
+        <div class="detail-stat"><div class="val">${remaining}</div><div class="key">Kalan tablet</div></div>
+        <div class="detail-stat"><div class="val">${daysLeft}</div><div class="key">Kalan gün</div></div>
+        <div class="detail-stat"><div class="val">${d.daily}</div><div class="key">Günlük doz</div></div>
+        <div class="detail-stat"><div class="val">${takenToday}/${d.times ? d.times.length : 0}</div><div class="key">Bugün alınan</div></div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Kullanım</div>
+      <div style="background:var(--surface2);border-radius:14px;padding:14px">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)">Süre</span><span style="font-weight:800">${d.duration === 'omur_boyu' ? '∞ Ömür boyu' : (d.duration === 'sure' ? d.days+' gün' : 'Adet bitince')}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:var(--muted)">Alarm saatleri</span><span style="font-weight:800">${d.times && d.times.length ? d.times.join(', ') : '—'}</span></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="btn-primary" style="flex:1" onclick="closeModal();openAddModal(${d.id})">✏️ Düzenle</button>
+      <button style="flex:0.5;padding:16px;background:var(--bg);border:1.5px solid var(--border);border-radius:16px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;cursor:pointer" onclick="addStockModal(${d.id})">📦 Stok</button>
+    </div>
+    <button style="width:100%;padding:14px;background:none;border:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;margin-top:8px" onclick="closeModal()">Kapat</button>
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function addStockModal(id) {
+  const d = drugs.find(x => x.id == id);
+  if (!d) return;
+  const amount = prompt(`"${d.name}" için kaç tablet/kapsül ekliyorsun? (Mevcut: ${d.stock})`);
+  if (!amount) return;
+  const n = parseInt(amount);
+  if (isNaN(n)) return;
+  d.stock = (d.stock || 0) + n;
+  logHistory(d.id, 'Stok güncellendi', '+'+n+' tablet');
+  saveData();
+  renderAll();
+  closeModal();
+}
+
+// ─── NOTIFICATIONS ───
+function checkNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    document.getElementById('notif-prompt').innerHTML = `
+      <div class="notif-banner">
+        <span>🔔 Alarm bildirimleri için izin ver</span>
+        <button onclick="requestNotifPermission()">İzin Ver</button>
+      </div>`;
+  }
+}
+
+function requestNotifPermission() {
+  if (!('Notification' in window)) { alert('Tarayıcınız bildirimleri desteklemiyor.'); return; }
+  Notification.requestPermission().then(p => {
+    if (p === 'granted') {
+      document.getElementById('notif-prompt').innerHTML = '';
+      scheduleAlarms();
+    }
+  });
+}
+
+function scheduleAlarms() {
+  alarmTimers.forEach(t => clearTimeout(t));
+  alarmTimers = [];
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const now = new Date();
+  drugs.forEach(d => {
+    if (!d.alarm || !d.times) return;
+    d.times.forEach(t => {
+      const [h, m] = t.split(':').map(Number);
+      const next = new Date();
+      next.setHours(h, m, 0, 0);
+      if (next <= now) next.setDate(next.getDate() + 1);
+      const ms = next - now;
+      const timer = setTimeout(() => {
+        new Notification('💊 İlaç Zamanı!', {
+          body: `${d.name} — ${d.daily} tablet/kapsül alınacak`,
+          icon: '💊',
+          tag: `drug_${d.id}_${t}`
+        });
+        scheduleAlarms(); // reschedule for next day
+      }, ms);
+      alarmTimers.push(timer);
+    });
+  });
+}
+
+// ─── UTILS ───
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+function formatDate(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  return d.toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify({drugs, takenLog}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ilac-yedek-' + todayStr() + '.json';
+  a.click();
+}
+
+// Close modal on overlay click
+document.getElementById('add-modal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
+document.getElementById('detail-modal').addEventListener('click', function(e) { if(e.target === this) closeModal(); });
+</script>
+</body>
+</html>
