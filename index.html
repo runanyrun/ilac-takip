@@ -103,6 +103,23 @@
       <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
     </div>
     <div class="form-group">
+      <label class="form-label">Kullanım Durumu</label>
+      <div class="usage-condition-group">
+        <label class="usage-condition-option">
+          <input type="radio" name="usage-condition" value="ac">
+          <span>Aç</span>
+        </label>
+        <label class="usage-condition-option">
+          <input type="radio" name="usage-condition" value="tok">
+          <span>Tok</span>
+        </label>
+        <label class="usage-condition-option">
+          <input type="radio" name="usage-condition" value="fark_etmez" checked>
+          <span>Fark etmez</span>
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
       <label class="form-label">Kutudaki Tablet Adedi</label>
       <div class="stock-counter">
         <button onclick="changeStock(-10)">−10</button>

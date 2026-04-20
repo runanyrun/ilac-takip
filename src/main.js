@@ -11,8 +11,20 @@ function saveDrugs(d)   { localStorage.setItem(LS_DRUGS,   JSON.stringify(d)); }
 function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
 function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
 
+function normalizeUsageCondition(v) {
+  return (v === 'ac' || v === 'tok' || v === 'fark_etmez') ? v : 'fark_etmez';
+}
+
+function usageConditionLabel(v) {
+  return ({ ac:'Aç', tok:'Tok', fark_etmez:'Fark etmez' })[normalizeUsageCondition(v)];
+}
+
+function normalizeDrug(d) {
+  return { ...d, usageCondition: normalizeUsageCondition(d && d.usageCondition) };
+}
+
 // ── STATE ──
-let drugs    = loadDrugs();
+let drugs    = loadDrugs().map(normalizeDrug);
 let takenLog = loadLog();
 let editId   = null;
 let stockVal = 30;
@@ -33,6 +45,8 @@ setInterval(updateHeaderDate, 60000);
 setTimeout(() => {
   if (Notification.permission === 'granted') setupWebPush().catch(()=>{});
 }, 1200);
+
+saveDrugs(drugs);
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
@@ -81,6 +95,12 @@ function renderDrugs() {
     const stockClass = remaining <= 0 ? 'stock-empty' : (daysLeft <= 7 ? 'stock-low' : 'stock-ok');
     const stockText  = remaining <= 0 ? '❌ Bitti' : (daysLeft <= 7 ? `⚠️ ${daysLeft}g` : `✅ ${daysLeft}g`);
     const durText = d.duration === 'omur_boyu' ? '∞ Ömür boyu' : (d.duration === 'sure' ? `${d.days} gün` : 'Kutu bitince');
+    const usage = usageConditionLabel(d.usageCondition);
+    const times = Array.isArray(d.times) ? d.times.filter(Boolean) : [];
+    const timeBadges = times.length
+      ? times.slice(0,3).map(t => `<span class="pill-badge pill-orange">${t}</span>`).join('') +
+        (times.length > 3 ? `<span class="pill-badge pill-gray">+${times.length-3} saat</span>` : '')
+      : '<span class="pill-badge pill-gray">Saat yok</span>';
     return `<div class="drug-card" onclick="showDetail(${d.id})" style="animation-delay:${i*0.05}s">
       <div class="drug-card-stripe" style="background:${color}"></div>
       ${d.photo ? `<img class="drug-card-img" src="${d.photo}">` : `<div class="drug-card-img-placeholder">💊</div>`}
@@ -89,7 +109,8 @@ function renderDrugs() {
         <div class="drug-card-meta">${[d.doctor?'Dr.'+d.doctor:'', d.hospital].filter(Boolean).join(' · ')}</div>
         <div class="drug-card-pills">
           <span class="pill-badge pill-blue">Günde ${d.daily}x</span>
-          ${d.times&&d.times.length ? `<span class="pill-badge pill-orange">${d.times[0]}</span>` : ''}
+          <span class="pill-badge pill-usage">${usage}</span>
+          ${timeBadges}
           <span class="pill-badge pill-gray">${durText}</span>
           ${d.alarm ? '<span class="pill-badge pill-green">🔔</span>' : ''}
         </div>
@@ -186,6 +207,7 @@ function alarmHTML(i, variant='list') {
   const overdueInfo = (variant === 'focus' && !i.done && i.overdue)
     ? `<div class="alarm-overdue-text">${Math.abs(i.diff)} dk gecikti</div>`
     : '';
+  const usage = usageConditionLabel(i.drug.usageCondition);
   return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
     ${topTags}
     ${doneOverlay}
@@ -194,11 +216,11 @@ function alarmHTML(i, variant='list') {
       <div class="alarm-time">${i.time}</div>
       ${overdueInfo}
       <div class="alarm-name">${i.drug.name}</div>
+      <div class="alarm-usage-badge">${usage}</div>
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'ALINDI ✓' : 'ALDIM'}</button>
-      ${i.done ? '<div class="alarm-status-tag">Tamamlandı</div>' : ''}
+      <button class="alarm-action" onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : 'ALDIM'}</button>
     </div>
   </div>`;
 }
@@ -268,6 +290,9 @@ function openAddModal(drugId=null) {
     document.getElementById('drug-days').value     = d.days||'';
     document.getElementById('drug-alarm').checked  = d.alarm!==false;
     stockVal = d.stock||0;
+    const usage = normalizeUsageCondition(d.usageCondition);
+    const usageEl = document.querySelector(`input[name="usage-condition"][value="${usage}"]`);
+    if (usageEl) usageEl.checked = true;
     if (d.photo) { document.getElementById('photo-preview').src=d.photo; document.getElementById('photo-preview').style.display='block'; document.getElementById('photo-placeholder').style.display='none'; }
     else { document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block'; }
     renderTimeSlots(d.times||[]);
@@ -276,6 +301,8 @@ function openAddModal(drugId=null) {
     document.getElementById('drug-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('drug-daily').value=1; document.getElementById('drug-duration').value='omur_boyu';
     document.getElementById('drug-days').value=''; document.getElementById('drug-alarm').checked=true;
+    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="fark_etmez"]');
+    if (defaultUsageEl) defaultUsageEl.checked = true;
     stockVal=30;
     document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block';
     renderTimeSlots(['08:00']);
@@ -329,6 +356,7 @@ function saveDrug() {
   if (!name) { alert('İlaç adı zorunlu!'); return; }
   const prev = document.getElementById('photo-preview');
   const photo = prev.style.display!=='none' ? prev.src : null;
+  const usageCondition = normalizeUsageCondition((document.querySelector('input[name="usage-condition"]:checked')||{}).value);
   const drug = {
     id: editId || Date.now(),
     name, photo,
@@ -341,9 +369,10 @@ function saveDrug() {
     alarm:    document.getElementById('drug-alarm').checked,
     times:    [...timeSlots],
     stock:    stockVal,
+    usageCondition,
   };
-  if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=drug; }
-  else { drugs.push(drug); logHistory(drug.id,'İlaç eklendi'); }
+  if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=normalizeDrug(drug); }
+  else { drugs.push(normalizeDrug(drug)); logHistory(drug.id,'İlaç eklendi'); }
   saveDrugs(drugs);
   closeModal(); renderAll(); scheduleAlarms();
   syncPushSchedule();
@@ -555,7 +584,7 @@ function importData() {
           alert('Geçersiz yedek dosyası.');
           return;
         }
-        drugs = parsed.drugs;
+        drugs = parsed.drugs.map(normalizeDrug);
         takenLog = parsed.takenLog || {};
         saveDrugs(drugs);
         saveLog(takenLog);
