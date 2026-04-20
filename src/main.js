@@ -31,6 +31,7 @@ let stockVal = 30;
 let timeSlots = [];
 let alarmTimers = [];
 let pushReady = false;
+let takingState = {};
 
 const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
@@ -172,7 +173,7 @@ function renderToday() {
       const [h,m] = t.split(':').map(Number);
       const mins = (h * 60) + m;
       const diff = mins - nowMins;
-      items.push({ drug:d, time:t, key, done: !!takenLog[key], mins, diff });
+      items.push({ drug:d, time:t, key, done: !!takenLog[key], isTaking: !!takingState[key], mins, diff });
     });
   });
   items.sort((a,b) => a.mins - b.mins);
@@ -232,6 +233,7 @@ function alarmHTML(i, variant='list') {
     'alarm-item',
     variant === 'focus' ? 'focus' : 'compact',
     i.done ? 'done' : 'pending',
+    i.isTaking ? 'taking' : '',
     i.isNow ? 'now' : '',
     (!i.done && i.overdue) ? 'overdue' : '',
   ].filter(Boolean).join(' ');
@@ -259,7 +261,7 @@ function alarmHTML(i, variant='list') {
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : 'ALDIM'}</button>
+      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
     </div>
   </div>`;
 }
@@ -271,14 +273,27 @@ function toggleTaken(key) {
   if (takenLog[key]) {
     delete takenLog[key];
     if (d) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
-  } else {
+    saveDrugs(drugs); saveLog(takenLog);
+    renderToday();
+    renderDrugs();
+    syncPushSchedule();
+    return;
+  }
+
+  if (takingState[key]) return;
+  takingState[key] = true;
+  renderToday();
+
+  setTimeout(() => {
+    if (!takingState[key]) return;
+    delete takingState[key];
     takenLog[key] = true;
     if (d && d.stock > 0) { d.stock = Math.max(0,(d.stock||0)-1); logHistory(d.id,'İlaç alındı'); }
-  }
-  saveDrugs(drugs); saveLog(takenLog);
-  renderToday();
-  renderDrugs();
-  syncPushSchedule();
+    saveDrugs(drugs); saveLog(takenLog);
+    renderToday();
+    renderDrugs();
+    syncPushSchedule();
+  }, 650);
 }
 
 function renderStats() {

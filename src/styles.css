@@ -127,9 +127,15 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   padding-top: 18px;
   padding-bottom: 16px;
 }
+.alarm-item.taking {
+  border-color: #8fd9ad;
+  background: #f3fbf6;
+  animation: takenPop 0.45s ease;
+}
 .alarm-item.done .alarm-action-wrap {
   gap: 14px;
   justify-content: flex-end;
+  margin-top: 16px;
 }
 .alarm-item.focus {
   padding: 22px 20px;
@@ -344,15 +350,30 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   box-shadow: 0 3px 8px rgba(232,115,74,0.25);
 }
 .alarm-item.done .alarm-action {
-  min-height: 42px;
-  padding: 8px 10px;
-  font-size: 13px;
+  min-height: auto;
+  padding: 2px 0;
+  font-size: 12px;
   font-weight: 800;
-  border-radius: 12px;
-  border: 1.5px solid #c9d6e4;
-  background: #e8eff6;
-  color: #4b6278;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  color: #5e7389;
+  text-decoration: underline;
+  text-underline-offset: 2px;
   box-shadow: none;
+}
+.alarm-item.taking .alarm-action {
+  background: #2fb167;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+.alarm-item.taking .alarm-action[disabled] {
+  opacity: 1;
+  cursor: default;
 }
 .alarm-status-tag {
   text-align: center;
@@ -376,6 +397,15 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   letter-spacing: 0.2px;
   box-shadow: 0 6px 14px rgba(47,177,103,0.24);
 }
+.alarm-item.done .alarm-main {
+  padding-top: 6px;
+}
+
+@keyframes takenPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
 
 @media (max-width: 420px) {
   .alarm-item { gap: 10px; padding: 12px; }
@@ -397,7 +427,7 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   .alarm-item.compact .alarm-dose { font-size: 11px; }
   .alarm-item.compact .alarm-action-wrap { min-width: 72px; }
   .alarm-item.compact .alarm-action { min-height: 36px; font-size: 11px; }
-  .alarm-item.done .alarm-action { min-height: 34px; font-size: 11px; padding: 6px 8px; }
+  .alarm-item.done .alarm-action { min-height: auto; font-size: 11px; padding: 2px 0; }
 }
 
 .history-item { background: var(--surface); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
