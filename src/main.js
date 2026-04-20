@@ -12,11 +12,11 @@ function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
 function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
 
 function normalizeUsageCondition(v) {
-  return (v === 'ac' || v === 'tok' || v === 'fark_etmez') ? v : 'fark_etmez';
+  return (v === 'ac' || v === 'tok') ? v : 'tok';
 }
 
 function usageConditionLabel(v) {
-  return ({ ac:'Aç', tok:'Tok', fark_etmez:'Fark etmez' })[normalizeUsageCondition(v)];
+  return ({ ac:'Aç', tok:'Tok' })[normalizeUsageCondition(v)];
 }
 
 function formatDelayText(totalMins) {
@@ -254,23 +254,32 @@ function alarmHTML(i, variant='list') {
     </div>
   ` : '';
   const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
-  const overdueInfo = (variant === 'focus' && !i.done && i.overdue)
+  const overdueInfo = (!i.done && i.overdue)
     ? `<div class="alarm-overdue-text">${formatDelayText(i.diff)}</div>`
     : '';
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = usageCondition === 'tok'
     ? '🍽 TOK'
-    : (usageCondition === 'ac' ? '⚠️ AÇ' : 'ℹ️ FARK ETMEZ');
+    : '⚠️ AÇ';
+  const remaining = parseInt(i.drug.stock, 10) || 0;
+  const dailyDose = Math.max(1, parseInt(i.drug.daily, 10) || 1);
+  const daysLeft = Math.floor(remaining / dailyDose);
+  const stockInfo = remaining <= 0
+    ? '<div class="alarm-stock-warning stock-empty">📦 Stok bitti</div>'
+    : (daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">📦 Stok az: ${daysLeft} gün</div>` : '');
   return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
     ${topTags}
     ${doneOverlay}
-    ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
-    <div class="alarm-main">
-      <div class="alarm-time">${i.time}</div>
+    <div class="alarm-time">${i.time}</div>
+    <div class="alarm-name">${i.drug.name}</div>
+    <div class="alarm-image-wrap">
+      ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
+    </div>
+    <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
+    <div class="alarm-support">
       ${overdueInfo}
-      <div class="alarm-name">${i.drug.name}</div>
-      <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
+      ${stockInfo}
     </div>
     <div class="alarm-action-wrap">
       <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
@@ -367,7 +376,7 @@ function openAddModal(drugId=null) {
     document.getElementById('drug-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('drug-daily').value=1; document.getElementById('drug-duration').value='omur_boyu';
     document.getElementById('drug-days').value=''; document.getElementById('drug-alarm').checked=true;
-    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="fark_etmez"]');
+    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="tok"]');
     if (defaultUsageEl) defaultUsageEl.checked = true;
     stockVal=30;
     document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block';
