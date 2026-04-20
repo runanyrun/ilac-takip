@@ -94,17 +94,30 @@ function renderToday() {
   const cont = document.getElementById('today-alarms');
   if (!drugs.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">📅</div><h3>İlaç yok</h3><p>İlaçlar sekmesinden ekle.</p></div>`; return; }
   const today = todayStr();
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
   let items = [];
   drugs.forEach(d => {
     if (!d.times) return;
     d.times.forEach(t => {
       const key = `${today}_${d.id}_${t}`;
-      items.push({ drug:d, time:t, key, done: !!takenLog[key] });
+      const [h,m] = t.split(':').map(Number);
+      const mins = (h * 60) + m;
+      const diff = mins - nowMins;
+      items.push({ drug:d, time:t, key, done: !!takenLog[key], mins, diff });
     });
   });
-  items.sort((a,b) => a.time.localeCompare(b.time));
+  items.sort((a,b) => a.mins - b.mins);
   if (!items.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><h3>Bugün alarm yok</h3></div>`; return; }
-  const pending = items.filter(i=>!i.done);
+  const pending = items.filter(i=>!i.done).map(i => ({ ...i, overdue: i.diff < 0 }));
+  const nearestUpcoming = pending
+    .filter(i => !i.overdue)
+    .sort((a,b) => a.diff - b.diff)[0];
+  const nearestOverdue = pending
+    .filter(i => i.overdue)
+    .sort((a,b) => b.diff - a.diff)[0];
+  const focusKey = nearestUpcoming ? nearestUpcoming.key : (nearestOverdue ? nearestOverdue.key : null);
+  pending.forEach(i => { i.isNow = i.key === focusKey; });
   const done    = items.filter(i=>i.done);
   let html = '';
   if (pending.length) { html += `<div class="alarm-section-title">Bekleyen (${pending.length})</div>`; html += pending.map(alarmHTML).join(''); }
@@ -114,7 +127,22 @@ function renderToday() {
 }
 
 function alarmHTML(i) {
-  return `<div class="alarm-item ${i.done ? 'done' : 'pending'}">
+  const classes = [
+    'alarm-item',
+    i.done ? 'done' : 'pending',
+    i.isNow ? 'now' : '',
+    (!i.done && i.overdue) ? 'overdue' : '',
+  ].filter(Boolean).join(' ');
+  const topTags = !i.done ? `
+    <div class="alarm-item-top-tags">
+      ${i.isNow ? '<span class="alarm-flag alarm-flag-now">ŞİMDİ AL</span>' : ''}
+      ${i.overdue ? '<span class="alarm-flag alarm-flag-overdue">GECİKTİ</span>' : ''}
+    </div>
+  ` : '';
+  const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
+  return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
+    ${topTags}
+    ${doneOverlay}
     ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     <div class="alarm-main">
       <div class="alarm-time">${i.time}</div>
@@ -122,7 +150,7 @@ function alarmHTML(i) {
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" onclick="toggleTaken('${i.key}')">${i.done ? 'Alındı ✓' : 'Onayla'}</button>
+      <button class="alarm-action" onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'ALINDI ✓' : 'ALDIM'}</button>
       ${i.done ? '<div class="alarm-status-tag">Tamamlandı</div>' : ''}
     </div>
   </div>`;

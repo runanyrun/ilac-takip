@@ -81,27 +81,67 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   box-shadow: 0 6px 18px rgba(26,58,92,0.09);
   border: 2px solid #e8eef5;
   transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+.alarm-item:active {
+  transform: scale(0.985);
 }
 .alarm-item.pending {
   border-color: #ffd7c9;
   box-shadow: 0 8px 22px rgba(232,115,74,0.16);
 }
+.alarm-item.now {
+  border-width: 3px;
+  border-color: #f7a485;
+  background: #fff7f2;
+  box-shadow: 0 10px 24px rgba(232,115,74,0.25);
+}
+.alarm-item.overdue {
+  border-color: #f3a6a6;
+  background: #fff1f1;
+  box-shadow: 0 8px 22px rgba(231,76,60,0.2);
+}
 .alarm-item.done {
-  opacity: 0.78;
+  opacity: 0.62;
   background: #f7faf8;
   border-color: #d7ebdd;
 }
+.alarm-item-top-tags {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;
+}
+.alarm-flag {
+  border-radius: 10px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+.alarm-flag-now {
+  background: #ffe1d4;
+  color: #b54f29;
+}
+.alarm-flag-overdue {
+  background: #ffd8d8;
+  color: #b42323;
+}
 .alarm-photo {
-  width: 86px;
-  height: 86px;
+  width: 100px;
+  height: 100px;
   border-radius: 16px;
   object-fit: cover;
   border: 1.5px solid var(--border);
   flex-shrink: 0;
 }
 .alarm-photo-placeholder {
-  width: 86px;
-  height: 86px;
+  width: 100px;
+  height: 100px;
   border-radius: 16px;
   border: 1.5px solid var(--border);
   background: var(--surface2);
@@ -157,8 +197,12 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   background: var(--accent);
   color: #fff;
   box-shadow: 0 8px 14px rgba(232,115,74,0.25);
+  transition: transform 0.13s ease, box-shadow 0.13s ease;
 }
-.alarm-action:active { transform: scale(0.97); }
+.alarm-action:active {
+  transform: scale(0.94);
+  box-shadow: 0 3px 8px rgba(232,115,74,0.25);
+}
 .alarm-item.done .alarm-action {
   background: #2fb167;
   box-shadow: none;
@@ -172,10 +216,22 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   font-size: 12px;
   font-weight: 800;
 }
+.alarm-done-overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #2fb167;
+  color: #fff;
+  border-radius: 12px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
 
 @media (max-width: 420px) {
   .alarm-item { gap: 10px; padding: 12px; }
-  .alarm-photo, .alarm-photo-placeholder { width: 76px; height: 76px; }
+  .alarm-photo, .alarm-photo-placeholder { width: 90px; height: 90px; }
   .alarm-time { font-size: 30px; }
   .alarm-name { font-size: 18px; }
   .alarm-dose { font-size: 14px; }
