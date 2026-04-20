@@ -37,8 +37,9 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
 .tab.active { color: var(--primary); }
 .tab.active::after { content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 3px; background: var(--accent); border-radius: 3px 3px 0 0; }
 
-.content { flex: 1; overflow-y: auto; padding: 16px; -webkit-overflow-scrolling: touch; }
+.content { flex: 1; overflow-y: auto; padding: 16px 16px calc(130px + env(safe-area-inset-bottom, 0px)); -webkit-overflow-scrolling: touch; }
 .content::-webkit-scrollbar { display: none; }
+#today-alarms { padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px)); }
 
 .page { display: none; }
 .page.active { display: block; }
@@ -123,6 +124,12 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   opacity: 0.62;
   background: #f7faf8;
   border-color: #d7ebdd;
+  padding-top: 18px;
+  padding-bottom: 16px;
+}
+.alarm-item.done .alarm-action-wrap {
+  gap: 14px;
+  justify-content: flex-end;
 }
 .alarm-item.focus {
   padding: 22px 20px;
@@ -337,7 +344,14 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   box-shadow: 0 3px 8px rgba(232,115,74,0.25);
 }
 .alarm-item.done .alarm-action {
-  background: #2fb167;
+  min-height: 42px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 12px;
+  border: 1.5px solid #c9d6e4;
+  background: #e8eff6;
+  color: #4b6278;
   box-shadow: none;
 }
 .alarm-status-tag {
@@ -351,15 +365,16 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
 }
 .alarm-done-overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 10px;
+  right: 10px;
   background: #2fb167;
   color: #fff;
-  border-radius: 12px;
-  padding: 6px 10px;
-  font-size: 13px;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.2px;
+  box-shadow: 0 6px 14px rgba(47,177,103,0.24);
 }
 
 @media (max-width: 420px) {
@@ -382,6 +397,7 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   .alarm-item.compact .alarm-dose { font-size: 11px; }
   .alarm-item.compact .alarm-action-wrap { min-width: 72px; }
   .alarm-item.compact .alarm-action { min-height: 36px; font-size: 11px; }
+  .alarm-item.done .alarm-action { min-height: 34px; font-size: 11px; padding: 6px 8px; }
 }
 
 .history-item { background: var(--surface); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
@@ -390,8 +406,27 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
 .history-text strong { font-weight: 800; }
 .history-date { font-size: 11px; color: var(--muted); }
 
-.fab { position: fixed; bottom: 24px; right: 50%; transform: translateX(50%) translateX(min(160px, 30vw)); width: 58px; height: 58px; border-radius: 20px; background: var(--accent); color: white; font-size: 28px; border: none; cursor: pointer; box-shadow: 0 8px 24px rgba(232,115,74,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.fab:active { transform: translateX(50%) translateX(min(160px, 30vw)) scale(0.93); }
+.fab {
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  width: 58px;
+  height: 58px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: white;
+  font-size: 28px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(232,115,74,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(-50%);
+  z-index: 120;
+}
+.fab:active { transform: translateX(-50%) scale(0.93); }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(10,20,35,0.6); z-index: 200; display: flex; align-items: flex-end; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
 .modal-overlay.open { opacity: 1; pointer-events: all; }

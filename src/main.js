@@ -34,6 +34,7 @@ let pushReady = false;
 
 const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
+const APP_VERSION = '20260420';
 
 // ── INIT ──
 updateHeaderDate();
@@ -50,9 +51,45 @@ saveDrugs(drugs);
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js?v=5')
-    .then(() => { pushReady = true; })
+  navigator.serviceWorker.register(`sw.js?v=${APP_VERSION}`)
+    .then(registration => {
+      pushReady = true;
+      registration.update().catch(()=>{});
+      setupServiceWorkerUpdateFlow(registration);
+    })
     .catch(()=>{});
+}
+
+function setupServiceWorkerUpdateFlow(registration) {
+  const showPrompt = () => showUpdateToast();
+  if (registration.waiting) showPrompt();
+
+  registration.addEventListener('updatefound', () => {
+    const worker = registration.installing;
+    if (!worker) return;
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+        showPrompt();
+      }
+    });
+  });
+}
+
+function showUpdateToast() {
+  if (document.getElementById('sw-update-toast')) return;
+  const toast = document.createElement('div');
+  toast.id = 'sw-update-toast';
+  toast.setAttribute('style',
+    'position:fixed;left:12px;right:12px;bottom:calc(88px + env(safe-area-inset-bottom,0px));' +
+    'z-index:150;background:#1a3a5c;color:#fff;border-radius:14px;padding:10px 12px;' +
+    'display:flex;align-items:center;justify-content:space-between;gap:10px;' +
+    'box-shadow:0 8px 24px rgba(26,58,92,0.3);font:700 13px/1.2 Nunito,sans-serif;'
+  );
+  toast.innerHTML = '<span>Uygulama güncellendi.</span><button id="sw-update-btn" style="border:none;border-radius:10px;padding:8px 10px;background:#fff;color:#1a3a5c;font:800 12px Nunito,sans-serif;cursor:pointer;">Yenile</button>';
+  document.body.appendChild(toast);
+
+  const btn = document.getElementById('sw-update-btn');
+  if (btn) btn.addEventListener('click', () => window.location.reload());
 }
 
 function updateHeaderDate() {
