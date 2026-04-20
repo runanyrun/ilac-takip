@@ -183,12 +183,16 @@ function alarmHTML(i, variant='list') {
     </div>
   ` : '';
   const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
+  const overdueInfo = (variant === 'focus' && !i.done && i.overdue)
+    ? `<div class="alarm-overdue-text">${Math.abs(i.diff)} dk gecikti</div>`
+    : '';
   return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
     ${topTags}
     ${doneOverlay}
     ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     <div class="alarm-main">
       <div class="alarm-time">${i.time}</div>
+      ${overdueInfo}
       <div class="alarm-name">${i.drug.name}</div>
       <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
     </div>

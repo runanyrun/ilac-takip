@@ -71,8 +71,10 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   margin: 18px 0 12px;
 }
 .alarm-section-title-focus {
-  margin-top: 8px;
-  color: #b54f29;
+  margin-top: 10px;
+  color: #a8431f;
+  font-size: 15px;
+  letter-spacing: 0.7px;
 }
 .empty-list-note {
   margin: -2px 0 12px;
@@ -119,40 +121,87 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   border-color: #d7ebdd;
 }
 .alarm-item.focus {
-  padding: 16px;
-  gap: 16px;
+  padding: 22px 20px;
+  gap: 18px;
+  margin-bottom: 18px;
+  border-width: 4px;
+  border-color: #f09a77;
+  box-shadow: 0 18px 36px rgba(232,115,74,0.28), 0 8px 18px rgba(26,58,92,0.12);
+  background: linear-gradient(180deg, #fffaf7 0%, #fff4ee 100%);
+}
+.alarm-item.focus .alarm-photo,
+.alarm-item.focus .alarm-photo-placeholder {
+  width: 112px;
+  height: 112px;
+  border-radius: 18px;
+}
+.alarm-item.focus .alarm-time {
+  font-size: 42px;
+  line-height: 0.95;
+  margin-bottom: 6px;
+  color: #183f66;
+  text-shadow: 0 2px 0 rgba(255,255,255,0.75);
+}
+.alarm-overdue-text {
+  display: inline-block;
+  margin-bottom: 7px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: #ffe0df;
+  color: #ad2c2a;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+.alarm-item.focus .alarm-action {
+  min-height: 78px;
+  font-size: 21px;
+  box-shadow: 0 10px 18px rgba(232,115,74,0.28);
+}
+.alarm-item.focus .alarm-action-wrap {
+  min-width: 126px;
 }
 .alarm-item.compact {
   padding: 10px 11px;
   gap: 10px;
   border-radius: 14px;
+  opacity: 0.62;
+  box-shadow: 0 3px 10px rgba(26,58,92,0.06);
+  border-color: #e5ebf2;
 }
 .alarm-item.compact .alarm-photo,
 .alarm-item.compact .alarm-photo-placeholder {
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   border-radius: 12px;
+  border-color: #dbe3ec;
 }
 .alarm-item.compact .alarm-time {
-  font-size: 24px;
-  margin-bottom: 4px;
+  font-size: 21px;
+  margin-bottom: 3px;
+  color: #5c6f81;
 }
 .alarm-item.compact .alarm-name {
-  font-size: 16px;
+  font-size: 15px;
   margin-bottom: 3px;
+  color: #576a7d;
 }
 .alarm-item.compact .alarm-dose {
-  font-size: 12px;
+  font-size: 11px;
+  color: #7d8f9f;
 }
 .alarm-item.compact .alarm-action-wrap {
-  min-width: 86px;
+  min-width: 80px;
   gap: 6px;
 }
 .alarm-item.compact .alarm-action {
-  min-height: 46px;
-  font-size: 14px;
+  min-height: 40px;
+  font-size: 12px;
   border-radius: 12px;
-  padding: 8px 10px;
+  padding: 7px 8px;
+  background: #c7d3df;
+  color: #32485e;
+  box-shadow: none;
 }
 .alarm-item.compact .alarm-status-tag {
   font-size: 11px;
@@ -165,6 +214,10 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
 .alarm-item.compact .alarm-flag {
   font-size: 10px;
   padding: 3px 6px;
+}
+.alarm-item.compact.pending.now {
+  border-color: #d7e2ee;
+  background: #f8fafc;
 }
 .alarm-item-top-tags {
   position: absolute;
@@ -295,12 +348,18 @@ html, body { height: 100%; background: var(--bg); font-family: 'Nunito', sans-se
   .alarm-dose { font-size: 14px; }
   .alarm-action-wrap { min-width: 104px; }
   .alarm-action { min-height: 64px; font-size: 17px; }
-  .alarm-item.compact .alarm-photo, .alarm-item.compact .alarm-photo-placeholder { width: 56px; height: 56px; }
-  .alarm-item.compact .alarm-time { font-size: 20px; }
+  .alarm-item.focus { padding: 18px 16px; gap: 14px; }
+  .alarm-item.focus .alarm-photo, .alarm-item.focus .alarm-photo-placeholder { width: 98px; height: 98px; }
+  .alarm-item.focus .alarm-time { font-size: 36px; }
+  .alarm-item.focus .alarm-action-wrap { min-width: 108px; }
+  .alarm-item.focus .alarm-action { min-height: 70px; font-size: 18px; }
+  .alarm-overdue-text { font-size: 12px; padding: 3px 8px; }
+  .alarm-item.compact .alarm-photo, .alarm-item.compact .alarm-photo-placeholder { width: 52px; height: 52px; }
+  .alarm-item.compact .alarm-time { font-size: 18px; }
   .alarm-item.compact .alarm-name { font-size: 14px; }
   .alarm-item.compact .alarm-dose { font-size: 11px; }
-  .alarm-item.compact .alarm-action-wrap { min-width: 78px; }
-  .alarm-item.compact .alarm-action { min-height: 42px; font-size: 12px; }
+  .alarm-item.compact .alarm-action-wrap { min-width: 72px; }
+  .alarm-item.compact .alarm-action { min-height: 36px; font-size: 11px; }
 }
 
 .history-item { background: var(--surface); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
