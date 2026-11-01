@@ -457,6 +457,8 @@ function openAddModal(drugId=null) {
   toggleDuration();
   document.getElementById('add-modal').classList.add('open');
   document.getElementById('detail-modal').classList.remove('open');
+  const editor = document.querySelector('#add-modal .modal');
+  if (editor) editor.scrollTop = 0;
 }
 
 function closeModal() {
@@ -499,7 +501,7 @@ function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElement
 
 function saveDrug() {
   const name = document.getElementById('drug-name').value.trim();
-  if (!name) { alert('İlaç adı zorunlu!'); return; }
+  if (!name) { alert('İlaç adını yazın.'); document.getElementById('drug-name').focus(); return; }
   const prev = document.getElementById('photo-preview');
   const photo = prev.style.display!=='none' ? prev.src : null;
   const usageCondition = normalizeUsageCondition((document.querySelector('input[name="usage-condition"]:checked')||{}).value);
