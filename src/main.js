@@ -282,8 +282,9 @@ function alarmHTML(i, variant='list') {
   const dailyDose = Math.max(1, parseInt(i.drug.daily, 10) || 1);
   const daysLeft = Math.floor(remaining / dailyDose);
   const stockInfo = remaining <= 0
-    ? '<div class="alarm-stock-warning stock-empty">📦 Stok bitti</div>'
-    : (daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">📦 Stok az: ${daysLeft} gün</div>` : '');
+    ? '<div class="alarm-stock-warning stock-empty">Stok bitti · İlacını yenile</div>'
+    : (daysLeft <= 3 ? `<div class="alarm-stock-warning stock-empty">İlacını yenile · Yaklaşık ${daysLeft} gün kaldı</div>` :
+       daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">İlacın azalıyor · Yaklaşık ${daysLeft} gün kaldı</div>` : '');
   return `<div class="${classes}">`
     ${topTags}
     ${doneOverlay}
@@ -340,6 +341,7 @@ function renderStats() {
   const today = todayStr();
   let total=0, done=0;
   drugs.forEach(d => { if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`]) done++; }); });
+  if (!document.getElementById('stat-total')) return;
   document.getElementById('stat-total').textContent = drugs.length;
   document.getElementById('stat-today').textContent = total;
   document.getElementById('stat-done').textContent  = done;
