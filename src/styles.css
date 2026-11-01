@@ -713,3 +713,10 @@ body.settings-open{overflow:hidden}
 @media(max-width:600px){#add-modal{align-items:stretch;justify-content:stretch;padding:0}#add-modal .modal{box-sizing:border-box;position:relative;inset:auto;width:100%;max-width:none;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;border-radius:0;padding:24px 20px max(32px,env(safe-area-inset-bottom));box-shadow:none}#add-modal .modal-handle{display:none}#add-modal .modal-title{font-size:24px;letter-spacing:-.5px;margin:4px 0 24px}#add-modal .form-row{display:grid;grid-template-columns:1fr;gap:0}#add-modal .form-input{min-height:48px;font-size:16px}#add-modal textarea.form-input{min-height:80px}#add-modal .form-group{margin-bottom:19px}#add-modal .photo-upload{min-height:120px}#add-modal .stock-counter button{min-width:44px;min-height:48px}#add-modal .stock-counter .val{font-size:22px}}
 
 .medicine-editor-header{display:flex;align-items:center;gap:12px}.medicine-editor-back{border:0;background:transparent;color:#191919;font-size:29px;min-width:48px;min-height:48px;cursor:pointer;display:none}.medicine-editor-back:focus-visible{outline:3px solid #222;border-radius:8px}@media(max-width:600px){.medicine-editor-back{display:block}#add-modal .medicine-editor-header{margin:0 0 22px;border-bottom:1px solid #e8e8e8;padding-bottom:12px}#add-modal .medicine-editor-header .modal-title{margin:0;font-size:22px}#add-modal .modal{padding-top:max(12px,env(safe-area-inset-top))}}
+
+/* Unified readable dose status; gentle emphasis only for overdue */
+.alarm-overdue-text,.alarm-waiting-text{display:block;box-sizing:border-box;width:100%;padding:10px 12px;border-radius:10px;font-size:16px!important;font-weight:850;line-height:1.45;letter-spacing:.3px;text-align:center;text-transform:uppercase}
+.alarm-waiting-text{color:#202020;background:#f0f0ee}
+.alarm-overdue-text{color:#8d2424;background:#f8e8e8;animation:overdue-breathe 2.8s ease-in-out infinite}
+@keyframes overdue-breathe{0%,100%{background:#f8e8e8;color:#8d2424}50%{background:#eed1d1;color:#6d1515}}
+@media(prefers-reduced-motion:reduce){.alarm-overdue-text{animation:none}}
