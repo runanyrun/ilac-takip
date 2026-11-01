@@ -4,7 +4,7 @@ The production Cloudflare D1 database `ilac-takip-db` was created in the existin
 
 ## Status
 - Database and six application tables created and verified.
-- **No Worker API has been deployed. No browser data has been uploaded.**
+- A read-only health Worker (`ilac-takip-api`) is deployed at `https://ilac-takip-api.runanyrun.workers.dev/api/health` with D1 binding `DB`. No authenticated data API has been deployed. No browser data has been uploaded.
 - Existing GitHub Pages frontend continues using browser `localStorage`; do not delete or overwrite it.
 - Other Cloudflare Workers are unrelated and must not be modified.
 - D1 UUID is `caf7a440-cf3c-40f7-aba5-af1c86f04fa9`. This is a resource identifier, not a secret.
