@@ -267,8 +267,8 @@ function alarmHTML(i, variant='list') {
     : '';
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = usageCondition === 'tok'
-    ? '🍽 TOK'
-    : '⚠️ AÇ';
+    ? 'TOK KARNINA'
+    : 'AÇ KARNINA';
   const remaining = parseInt(i.drug.stock, 10) || 0;
   const dailyDose = Math.max(1, parseInt(i.drug.daily, 10) || 1);
   const daysLeft = Math.floor(remaining / dailyDose);
@@ -290,7 +290,7 @@ function alarmHTML(i, variant='list') {
       ${stockInfo}
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
+      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
     </div>
   </div>`;
 }
@@ -300,6 +300,7 @@ function toggleTaken(key) {
   const id = parts[1];
   const d = drugs.find(x => x.id == id);
   if (takenLog[key]) {
+    if (!confirm('Bu dozu alınmadı olarak işaretlemek istiyor musunuz?')) return;
     delete takenLog[key];
     if (d) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
     saveDrugs(drugs); saveLog(takenLog);
