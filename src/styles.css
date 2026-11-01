@@ -684,3 +684,11 @@ html, body, #app { background: var(--bg); }
  #page-bugun .alarm-item.focus.photo-large .alarm-photo,
  #page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {width:min(64vw,220px);height:min(64vw,220px);}
 }
+
+/* Compact, readable usage and dose pills; save vertical space for the photo and action. */
+#page-bugun .alarm-item.focus .alarm-dose-tags{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:7px;margin:10px 0 5px}
+#page-bugun .alarm-item.focus .alarm-usage-badge,
+#page-bugun .alarm-item.focus .alarm-dose-tag{display:inline-flex;align-items:center;justify-content:center;width:auto;min-width:0;min-height:0;margin:0;padding:8px 13px;border-radius:999px;background:#f0f0ee;color:#333;font:750 12px/1.2 system-ui,sans-serif;letter-spacing:.5px}
+#page-bugun .alarm-item.focus .alarm-dose{font-size:12px;color:#777;font-weight:500}
+#page-bugun .alarm-item.compact .alarm-dose-tags{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+#page-bugun .alarm-item.compact .alarm-dose-tag{font-size:12px;color:#666}
