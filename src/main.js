@@ -230,7 +230,7 @@ function renderToday() {
   const nowMins = now.getHours() * 60 + now.getMinutes();
   let items = [];
   drugs.forEach(d => {
-    if (!d.times) return;
+    if (!d.times || (d.date && d.date > today)) return;
     d.times.forEach(t => {
       const key = `${today}_${d.id}_${t}`;
       const [h,m] = t.split(':').map(Number);
