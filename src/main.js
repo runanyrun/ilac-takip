@@ -790,12 +790,12 @@ function openCloudSetup() {
     localStorage.getItem(CLOUD_CREDENTIAL_KEY)
       ? 'Bu tarayıcıda test cihazı anahtarı bulunuyor. Yeniden eşleştirmek mevcut anahtarı değiştirebilir.'
       : 'Henüz eşleştirilmedi. Mevcut ilaç kayıtlarınız yalnızca bu cihazda kalır.';
-  modal.classList.add('show');
+  modal.classList.add('open');
 }
 
 function closeCloudSetup() {
   document.getElementById('cloud-invite').value = '';
-  document.getElementById('cloud-modal').classList.remove('show');
+  document.getElementById('cloud-modal').classList.remove('open');
 }
 
 async function connectCloudDevice() {
