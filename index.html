@@ -28,9 +28,9 @@
   <div class="settings-backdrop" id="settings-backdrop" hidden onclick="toggleMainSettings()"></div>
   <section class="main-settings-panel" id="main-settings-panel" hidden role="dialog" aria-modal="true" aria-label="Ayarlar" tabindex="-1"><div class="settings-drawer-top"><button class="settings-mobile-back" type="button" onclick="toggleMainSettings()" aria-label="Geri dön">←</button><div class="settings-panel-heading">AYARLAR</div><button class="settings-close" type="button" onclick="toggleMainSettings()" aria-label="Ayarları kapat">×</button></div><div class="settings-panel-label">İlaç fotoğrafı boyutu</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option" data-photo-size="large" onclick="setFocusPhotoSize('large')">Büyük</button><button type="button" class="photo-size-option" data-photo-size="small" onclick="setFocusPhotoSize('small')">Küçük</button><button type="button" class="photo-size-option" data-photo-size="hidden" onclick="setFocusPhotoSize('hidden')">Gizle</button></div><div class="settings-panel-heading settings-extra-heading">DİĞER İŞLEMLER</div><div class="settings-action-list"><button type="button" onclick="requestNotif()">Bildirim izni</button><button type="button" onclick="exportData()">Verileri yedekle</button><button type="button" onclick="importData()">Yedekten geri yükle</button><button type="button" onclick="openCloudSetup()">Bulut test bağlantısı</button></div></section>
   <div class="tabs">
-    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">💊 İlaçlar</button>
-    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">📅 Bugün</button>
-    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)">📋 Geçmiş</button>
+    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">İlaçlar</button>
+    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">Bugün</button>
+    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)">Geçmiş</button>
   </div>
   <div class="content">
     <div class="page" id="page-ilaclar">
@@ -52,7 +52,7 @@
       <label class="form-label">Kutu Fotoğrafı</label>
       <div class="photo-upload">
         <input type="file" accept="image/*" capture="environment" id="photo-input" onchange="handlePhoto(event)">
-        <div id="photo-placeholder"><div class="icon">📷</div><p>Fotoğraf çek veya galeriden seç</p></div>
+        <div id="photo-placeholder"><p>Kutu fotoğrafı ekle</p><small>Fotoğraf çek veya galeriden seç</small></div>
         <img class="photo-preview" id="photo-preview">
       </div>
     </div>
@@ -127,12 +127,12 @@
     </div>
     <div class="form-group">
       <div class="toggle-row">
-        <span class="toggle-label">🔔 Alarm Aktif</span>
+        <span class="toggle-label">Alarm aktif</span>
         <label class="toggle"><input type="checkbox" id="drug-alarm" checked><span class="toggle-slider"></span></label>
       </div>
     </div>
-    <button class="btn-primary" onclick="saveDrug()">✅ Kaydet</button>
-    <button class="btn-primary btn-danger" id="delete-btn" style="display:none;margin-top:10px" onclick="deleteDrug()">🗑️ Sil</button>
+    <button class="btn-primary" onclick="saveDrug()">Kaydet</button>
+    <button class="btn-primary btn-danger" id="delete-btn" style="display:none;margin-top:10px" onclick="deleteDrug()">İlacı sil</button>
     <button style="width:100%;padding:14px;background:none;border:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;margin-top:8px" onclick="closeModal()">İptal</button>
   </div>
 </div>
