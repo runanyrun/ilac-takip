@@ -24,6 +24,7 @@
         <button class="icon-btn" onclick="requestNotif()" title="Bildirim">🔔</button>
         <button class="icon-btn" onclick="exportData()" title="Yedek">💾</button>
         <button class="icon-btn" onclick="importData()" title="Geri Yükle">📂</button>
+        <button class="icon-btn" onclick="openCloudSetup()" title="Bulut Test Bağlantısı">☁️</button>
       </div>
     </div>
   </div>
@@ -142,6 +143,17 @@
   <div class="modal" id="detail-content"></div>
 </div>
 
+<div class="modal-overlay" id="cloud-modal" role="dialog" aria-modal="true" aria-labelledby="cloud-title">
+  <div class="modal">
+    <h2 id="cloud-title">☁️ Test Cihazı Eşleştirme</h2>
+    <p>Tek kullanımlık davet kodunu girin. Kod yalnızca Cloudflare API’ye gönderilir; GitHub’a veya yedek dosyasına eklenmez.</p>
+    <label for="cloud-invite">Davet kodu (64 karakter)</label>
+    <input id="cloud-invite" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" style="width:100%;padding:12px;margin:10px 0">
+    <button class="btn-primary" id="cloud-connect-btn" onclick="connectCloudDevice()">Cihazı eşleştir</button>
+    <p id="cloud-status" role="status" aria-live="polite"></p>
+    <button style="width:100%;padding:12px;margin-top:8px" onclick="closeCloudSetup()">Kapat</button>
+  </div>
+</div>
 <input type="file" id="import-file" accept="application/json" style="display:none">
 
 <script>
@@ -161,6 +173,6 @@
 </script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script defer src="src/main.js?v=20260420"></script>
+<script defer src="src/main.js?v=20261101-cloud"></script>
 </body>
 </html>
