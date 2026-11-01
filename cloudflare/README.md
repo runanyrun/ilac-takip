@@ -36,3 +36,9 @@ The frontend's JSON export now includes medication history, and importing a back
 - Medication IDs are stored with a user-specific prefix to prevent collisions across accounts; GET returns the original client-facing ID and scheduled times.
 - The current API is **not a lossless backup format**: frontend drug records also contain stock, photo, doctor, hospital, start date, duration, days and alarm flags, and history is separate. Do not automatically upload/replace localStorage with this API until the schema and round-trip mapping preserve all fields.
 - The Cloudflare upload API reported success. Independent HTTP smoke test and authenticated integration tests are pending.
+
+## Lossless backup API (staged, not connected to frontend)
+- D1 table `user_backups` holds one version-2 JSON backup per authenticated user, preserving `drugs`, `takenLog`, and `history` without dropping medication-specific fields.
+- `GET /api/backup` returns `{backup,revision,updatedAt}` or 404; `PUT /api/backup` accepts a version-2 backup, max 256 KiB serialized, with `If-Match: *` for first upload or the previously fetched SHA-256 revision for updates. Mismatches return 409, missing precondition returns 428. Identical payloads are idempotent.
+- Backup endpoints require a valid device bearer token. Registration remains disabled and there is no browser sync UI. This is **not** yet a verified restore or end-to-end cloud sync.
+- Test concurrent revisions, recovery, payload validation and authentication before connecting real patient data. D1 snapshots are not a substitute for an independent user-held backup.
