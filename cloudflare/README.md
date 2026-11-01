@@ -30,3 +30,9 @@ The production Cloudflare D1 database `ilac-takip-db` was created in the existin
 
 ## Backup safety work (feature branch only)
 The frontend's JSON export now includes medication history, and importing a backup first asks for confirmation and downloads an undo backup. Legacy backups without `history` remain supported without erasing existing history. Import is still a replacement, not a cloud sync or merge. These changes are **not live** until the draft PR is reviewed and merged; test with sample records and verify the undo download before rollout.
+
+## Medication API caveats (2026-11-01)
+- The Worker is deployed with a fixed registration gate; public device signup remains disabled. Existing bearer credentials would be checked independently of signup configuration.
+- Medication IDs are stored with a user-specific prefix to prevent collisions across accounts; GET returns the original client-facing ID and scheduled times.
+- The current API is **not a lossless backup format**: frontend drug records also contain stock, photo, doctor, hospital, start date, duration, days and alarm flags, and history is separate. Do not automatically upload/replace localStorage with this API until the schema and round-trip mapping preserve all fields.
+- The Cloudflare upload API reported success. Independent HTTP smoke test and authenticated integration tests are pending.
