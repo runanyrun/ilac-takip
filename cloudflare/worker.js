@@ -21,18 +21,32 @@ export default {
         return reply({ ok: row?.ok === 1, database: 'connected' });
       } catch { return reply({ ok: false, database: 'unavailable' }, 503); }
     }
-    // Fail closed until a server-side registration secret and abuse controls are configured.
+    // Single-use invitation. The invitation is provisioned out of band and stored hashed in D1.
+    // It is never embedded in the public frontend.
     if (request.method === 'POST' && path === '/api/devices') {
-      if (!env.REGISTRATION_SECRET) return reply({ error: 'registration_not_configured' }, 503);
-      if (request.headers.get('x-registration-secret') !== env.REGISTRATION_SECRET) return reply({ error: 'forbidden' }, 403);
+      if (!(request.headers.get('content-type') || '').startsWith('application/json')) return reply({ error: 'json_required' }, 415);
+      let invite;
+      try {
+        const raw = await request.text();
+        if (raw.length > 256) return reply({ error: 'too_large' }, 413);
+        invite = JSON.parse(raw)?.invite;
+      } catch { return reply({ error: 'invalid_json' }, 400); }
+      if (typeof invite !== 'string' || !/^[a-f0-9]{64}$/.test(invite)) return reply({ error: 'invalid_invite' }, 400);
+      const inviteHash = await hash(invite);
       const id = crypto.randomUUID();
       const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
       const digest = await hash(token);
-      await env.DB.batch([
-        env.DB.prepare('INSERT INTO users (id) VALUES (?)').bind(id),
-        env.DB.prepare('INSERT INTO device_credentials (user_id, token_hash) VALUES (?, ?)').bind(id, digest)
-      ]);
-      return reply({ userId: id, token }, 201);
+      try {
+        const results = await env.DB.batch([
+          env.DB.prepare('UPDATE enrollment_invites SET used_at = CURRENT_TIMESTAMP, user_id = ? WHERE token_hash = ? AND used_at IS NULL').bind(id, inviteHash),
+          env.DB.prepare('INSERT INTO users (id) SELECT ? WHERE EXISTS (SELECT 1 FROM enrollment_invites WHERE token_hash = ? AND user_id = ?)').bind(id, inviteHash, id),
+          env.DB.prepare('INSERT INTO device_credentials (user_id, token_hash) SELECT ?, ? WHERE EXISTS (SELECT 1 FROM users WHERE id = ?)').bind(id, digest, id)
+        ]);
+        if (results[0].meta.changes !== 1 || results[1].meta.changes !== 1 || results[2].meta.changes !== 1) {
+          return reply({ error: 'invite_unavailable' }, 403);
+        }
+        return reply({ userId: id, token }, 201);
+      } catch { return reply({ error: 'registration_failed' }, 503); }
     }
     const authorization = request.headers.get('authorization') || '';
     if (!/^Bearer [a-f0-9]{64}$/.test(authorization)) return reply({ error: 'unauthorized' }, 401);
