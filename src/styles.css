@@ -614,3 +614,15 @@ html, body, #app { background: var(--bg); }
 @media (prefers-reduced-motion: reduce) {
   .alarm-item, .alarm-action, .drug-card { animation: none !important; transition: none !important; }
 }
+
+/* Only explicit action buttons record a dose. Cards are informational. */
+#page-bugun .alarm-item { cursor: default; }
+#page-bugun .alarm-item:active { transform: none; }
+#page-bugun .alarm-action { cursor: pointer; touch-action: manipulation; }
+#page-bugun .alarm-action:focus-visible { outline: 3px solid #575a5c; outline-offset: 3px; }
+#page-bugun .alarm-item.focus .alarm-usage-badge.ac,
+#page-bugun .alarm-item.focus .alarm-usage-badge.tok,
+#page-bugun .alarm-item.compact .alarm-usage-badge.ac,
+#page-bugun .alarm-item.compact .alarm-usage-badge.tok {
+  background: #efefed; color: #353638; font-weight: 800; letter-spacing: .08em;
+}
