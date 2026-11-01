@@ -61,7 +61,7 @@ test('health works while signup is disabled; unauthorized backup is blocked', as
   const { env } = environment();
   assert.equal((await call(env, null, 'GET', '/api/health')).status, 200);
   assert.equal((await call(env, null, 'GET', '/api/backup')).status, 401);
-  assert.equal((await call(env, null, 'POST', '/api/devices')).status, 503);
+  assert.equal((await call(env, null, 'POST', '/api/devices')).status, 415);
 });
 
 test('backup preserves arbitrary drug fields and history; requires matching revision', async () => {
@@ -96,4 +96,9 @@ test('backup validation rejects malformed payloads and missing preconditions', a
   assert.equal((await call(env, token, 'PUT', '/api/backup', { ...valid, history: {} }, { ...headers, 'if-match': '*' })).status, 400);
   assert.equal((await call(env, token, 'PUT', '/api/backup', { ...valid, history: [], extra: 'x'.repeat(270000) }, { ...headers, 'if-match': '*' })).status, 413);
   assert.equal((await call(env, 'b'.repeat(64), 'GET', '/api/backup')).status, 401);
+});
+
+test('registration refuses malformed invitation without touching database', async () => {
+  const { env } = environment();
+  assert.equal((await call(env, null, 'POST', '/api/devices', { invite: 'wrong' }, { 'content-type': 'application/json' })).status, 400);
 });
