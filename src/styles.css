@@ -513,3 +513,10 @@ select.form-input { appearance: none; background-image: url("data:image/svg+xml,
 
 @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .drug-card { animation: slideUp 0.3s ease both; }
+
+/* Plain text dose statuses, matching typography; only overdue gently pulses. */
+.alarm-support .alarm-overdue-text,.alarm-support .alarm-waiting-text{display:block;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;cursor:default;pointer-events:none;font-size:16px;font-weight:850;line-height:1.5;letter-spacing:.3px;text-align:center;text-transform:uppercase}
+.alarm-support .alarm-waiting-text{color:#202020}
+.alarm-support .alarm-overdue-text{color:#8d2424;animation:dose-overdue-pulse 2.8s ease-in-out infinite}
+@keyframes dose-overdue-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+@media(prefers-reduced-motion:reduce){.alarm-support .alarm-overdue-text{animation:none}}
