@@ -4,7 +4,7 @@ The production Cloudflare D1 database `ilac-takip-db` was created in the existin
 
 ## Status
 - Database and six application tables created and verified.
-- A read-only health Worker (`ilac-takip-api`) is deployed at `https://ilac-takip-api.runanyrun.workers.dev/api/health` with D1 binding `DB`. No authenticated data API has been deployed. No browser data has been uploaded.
+- A staged Worker (`ilac-takip-api`) with health and authenticated medication routes is deployed at `https://ilac-takip-api.runanyrun.workers.dev/api/health` with D1 binding `DB`. Registration remains disabled because `REGISTRATION_SECRET` has not been configured. The browser frontend is not integrated and no browser data has been uploaded.
 - Existing GitHub Pages frontend continues using browser `localStorage`; do not delete or overwrite it.
 - Other Cloudflare Workers are unrelated and must not be modified.
 - D1 UUID is `caf7a440-cf3c-40f7-aba5-af1c86f04fa9`. This is a resource identifier, not a secret.
@@ -19,3 +19,11 @@ The production Cloudflare D1 database `ilac-takip-db` was created in the existin
 
 ## Schema
 `schema.sql` is the versioned schema. Avoid putting medication data, VAPID private keys or credentials in this repository. D1 backups and migration procedures must be defined before importing real user records.
+
+## Current API safety gates
+- `GET /api/health` checks D1.
+- `POST /api/devices` requires a server-side registration secret and is disabled until securely configured. Do not embed this secret in public frontend code.
+- `GET /api/medications` and `POST /api/medications` require a per-device bearer token; user ownership is derived from its SHA-256 digest in D1.
+- Browser CORS is restricted to `https://runanyrun.github.io`. Browser access alone is not authentication.
+- Real registration needs a secure invite/identity and abuse-control design; never expose the registration secret to public clients.
+- Production sync, history import, push dispatch, recovery, rate limiting, and live end-to-end testing are still pending.
