@@ -759,3 +759,17 @@ html,body{background:#f5f5f3;color:#171717;font-family:Arial,Helvetica,sans-seri
 
 /* Do not let the add-medicine floating action cover ALDIM/ATLADIM. */
 #add-drug-fab[hidden]{display:none!important}
+
+/* Approved mono focus card: status immediately under the clock, two stacked actions. */
+#page-bugun .alarm-item.focus{display:flex;flex-direction:column;align-items:stretch;text-align:center;gap:0}
+#page-bugun .alarm-item.focus .alarm-image-wrap{align-self:center}
+#page-bugun .alarm-item.focus .alarm-name{margin-top:8px}
+#page-bugun .alarm-item.focus .alarm-overdue-text,#page-bugun .alarm-item.focus .alarm-waiting-text{font-size:16px!important;font-weight:850;line-height:1.5;text-align:center;margin:2px 0 10px;background:transparent!important;border:0;padding:0;border-radius:0;pointer-events:none}
+#page-bugun .alarm-item.focus .alarm-overdue-text{color:#a92f39;animation:mono-live-overdue 1.35s ease-in-out infinite}
+#page-bugun .alarm-item.focus .alarm-waiting-text{color:#202020}
+@keyframes mono-live-overdue{0%,100%{opacity:1}50%{opacity:.12}}
+#page-bugun .alarm-item.focus .alarm-dose-tags{display:flex;align-items:center;justify-content:center;gap:7px;margin:0 0 10px;flex-wrap:wrap}
+#page-bugun .alarm-item.focus .alarm-action-wrap{display:flex!important;flex-direction:column!important;gap:8px;width:100%;min-width:0!important}
+#page-bugun .alarm-item.focus .alarm-action{width:100%!important;min-height:54px!important;margin:0!important}
+#page-bugun .alarm-item.focus .alarm-skip-action{width:100%!important;min-height:44px!important;margin:0!important}
+@media(prefers-reduced-motion:reduce){#page-bugun .alarm-item.focus .alarm-overdue-text{animation:none}}
