@@ -9,12 +9,12 @@ export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
     const origin = request.headers.get('origin');
+    const reply = (data, status = 200) => respond(data, status, origin);
     if (origin && origin !== ALLOWED_ORIGIN) return reply({ error: 'origin_not_allowed' }, 403);
     if (request.method === 'OPTIONS') {
       if (origin !== ALLOWED_ORIGIN) return reply({ error: 'origin_not_allowed' }, 403);
       return new Response(null, { status: 204, headers: { 'access-control-allow-origin': ALLOWED_ORIGIN, 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'authorization, content-type', 'access-control-max-age': '600', 'vary': 'Origin' } });
     }
-    const reply = (data, status = 200) => respond(data, status, origin);
     if (request.method === 'GET' && path === '/api/health') {
       try {
         const row = await env.DB.prepare('SELECT 1 AS ok').first();
