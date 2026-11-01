@@ -230,7 +230,7 @@ function renderToday() {
 
 function renderFocusCard(item) {
   if (!item) return '';
-  const title = item.overdue ? 'GECİKEN DOZ' : 'SIRADAKİ DOZ';
+  const title = item.overdue ? 'GECİKEN DOZ' : 'BEKLEYEN DOZ';
   return `
     <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" aria-pressed="${focusPhotoSize()==='large'}" onclick="setFocusPhotoSize('large')">Büyük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" aria-pressed="${focusPhotoSize()==='small'}" onclick="setFocusPhotoSize('small')">Küçük resim</button></div></div>
     ${alarmHTML(item, 'focus')}
@@ -255,6 +255,7 @@ function renderList(pending, done) {
 function alarmHTML(i, variant='list') {
   const classes = [
     'alarm-item',
+    i.done ? 'dose-taken' : (i.overdue ? 'dose-overdue' : 'dose-upcoming'),
     variant === 'focus' ? 'focus photo-' + focusPhotoSize() : 'compact',
     i.done ? 'done' : 'pending',
     i.isTaking ? 'taking' : '',
@@ -263,11 +264,13 @@ function alarmHTML(i, variant='list') {
   ].filter(Boolean).join(' ');
   const topTags = !i.done ? `
     <div class="alarm-item-top-tags">
-      ${i.isNow ? '<span class="alarm-flag alarm-flag-now">SIRADAKİ</span>' : ''}
+
       ${i.overdue ? '<span class="alarm-flag alarm-flag-overdue">GECİKTİ</span>' : ''}
     </div>
   ` : '';
   const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
+  const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
+  const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
     ? `<div class="alarm-overdue-text">${formatDelayText(i.diff)}</div>`
     : '';
@@ -281,14 +284,15 @@ function alarmHTML(i, variant='list') {
   const stockInfo = remaining <= 0
     ? '<div class="alarm-stock-warning stock-empty">📦 Stok bitti</div>'
     : (daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">📦 Stok az: ${daysLeft} gün</div>` : '');
-  return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
+  return `<div class="${classes}">`
     ${topTags}
     ${doneOverlay}
     <div class="alarm-image-wrap">
       ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     </div>
     <div class="alarm-name">${i.drug.name}</div>
-    <div class="alarm-time">${i.time}</div>
+    <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
+    ${i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
     <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
     <div class="alarm-support">
       ${overdueInfo}
@@ -323,7 +327,7 @@ function toggleTaken(key) {
   setTimeout(() => {
     if (!takingState[key]) return;
     delete takingState[key];
-    takenLog[key] = true;
+    takenLog[key] = new Date().toISOString();
     if (d && d.stock > 0) { d.stock = Math.max(0,(d.stock||0)-1); logHistory(d.id,'İlaç alındı'); }
     saveDrugs(drugs); saveLog(takenLog);
     renderToday();
@@ -690,7 +694,7 @@ async function syncPushSchedule() {
 }
 
 // ── UTILS ──
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+function todayStr() { const d=new Date(); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
 function formatDate(s) { return s ? new Date(s).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : ''; }
 
 // Full, local-only backup. No medication data is sent to a server.
