@@ -662,3 +662,9 @@ html, body, #app { background: var(--bg); }
 #page-bugun .alarm-stock-warning { font-size:13px; line-height:1.4; border-radius:12px; padding:11px; }
 #page-bugun .alarm-stock-warning.stock-low { background:#f4f0e8; color:#735620; }
 #page-bugun .alarm-stock-warning.stock-empty { background:#f9e8e9; color:#9d303a; }
+
+#page-bugun .alarm-item.dose-skipped .alarm-time {color:#777;}
+#page-bugun .alarm-item.dose-skipped .alarm-done-overlay {color:#666;}
+#page-bugun .alarm-item.focus.photo-hidden .alarm-image-wrap {display:none;}
+#page-bugun .alarm-skip-action {width:100%;margin-top:9px;padding:12px;border:1px solid #d8d8d6;background:transparent;border-radius:12px;color:#555;font-size:13px;font-weight:700;cursor:pointer;}
+#page-bugun .alarm-skip-action:focus-visible {outline:3px solid #555;outline-offset:2px;}
