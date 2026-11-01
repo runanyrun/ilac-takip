@@ -27,3 +27,6 @@ The production Cloudflare D1 database `ilac-takip-db` was created in the existin
 - Browser CORS is restricted to `https://runanyrun.github.io`. Browser access alone is not authentication.
 - Real registration needs a secure invite/identity and abuse-control design; never expose the registration secret to public clients.
 - Production sync, history import, push dispatch, recovery, rate limiting, and live end-to-end testing are still pending.
+
+## Backup safety work (feature branch only)
+The frontend's JSON export now includes medication history, and importing a backup first asks for confirmation and downloads an undo backup. Legacy backups without `history` remain supported without erasing existing history. Import is still a replacement, not a cloud sync or merge. These changes are **not live** until the draft PR is reviewed and merged; test with sample records and verify the undo download before rollout.
