@@ -3,6 +3,48 @@ const LS_DRUGS   = 'ilac_drugs_v2';
 const LS_LOG     = 'ilac_log_v2';
 const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
+const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
+function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; }
+let mainSettingsOpen = false;
+let settingsPreviousFocus = null;
+function updateMainSettings() {
+  const panel = document.getElementById('main-settings-panel');
+  const trigger = document.getElementById('main-settings-trigger');
+  if (panel) panel.hidden = !mainSettingsOpen;
+  const backdrop = document.getElementById('settings-backdrop');
+  if (backdrop) backdrop.hidden = !mainSettingsOpen;
+  document.body.classList.toggle('settings-open', mainSettingsOpen);
+  if (trigger) trigger.setAttribute('aria-expanded', String(mainSettingsOpen));
+  document.querySelectorAll('[data-photo-size]').forEach(button => {
+    const selected = button.dataset.photoSize === focusPhotoSize();
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
+}
+function toggleMainSettings() {
+  const opening = !mainSettingsOpen;
+  if (opening) settingsPreviousFocus = document.activeElement;
+  mainSettingsOpen = opening;
+  updateMainSettings();
+  if (opening) (window.matchMedia('(max-width:600px)').matches ? document.querySelector('.settings-mobile-back') : document.querySelector('.settings-close'))?.focus();
+  else if (settingsPreviousFocus && typeof settingsPreviousFocus.focus === 'function') settingsPreviousFocus.focus();
+}
+document.addEventListener('keydown', event => {
+  if (!mainSettingsOpen) return;
+  if (event.key === 'Escape') { event.preventDefault(); toggleMainSettings(); return; }
+  if (event.key !== 'Tab') return;
+  const panel = document.getElementById('main-settings-panel');
+  const focusable = [...panel.querySelectorAll('button:not([disabled])')].filter(el => getComputedStyle(el).display !== 'none');
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
+function setFocusPhotoSize(size) {
+  localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large');
+  renderToday();
+  updateMainSettings();
+}
 
 function loadDrugs()   { try { return JSON.parse(localStorage.getItem(LS_DRUGS))   || []; } catch(e){ return []; } }
 function loadLog()     { try { return JSON.parse(localStorage.getItem(LS_LOG))     || {}; } catch(e){ return {}; } }
@@ -13,11 +55,11 @@ function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
 function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
 
 function normalizeUsageCondition(v) {
-  return (v === 'ac' || v === 'tok') ? v : 'tok';
+  return ['ac','tok','farketmez','ozel','belirtilmedi'].includes(v) ? v : 'belirtilmedi';
 }
 
 function usageConditionLabel(v) {
-  return ({ ac:'Aç', tok:'Tok' })[normalizeUsageCondition(v)];
+  return ({ ac:'Aç', tok:'Tok', farketmez:'Aç / tok fark etmez', ozel:'Özel talimat', belirtilmedi:'Belirtilmedi' })[normalizeUsageCondition(v)];
 }
 
 function formatDelayText(totalMins) {
@@ -43,6 +85,9 @@ let timeSlots = [];
 let alarmTimers = [];
 let pushReady = false;
 let takingState = {};
+const expandedDrugNotes = new Set();
+function toggleDrugNote(id) { const k=String(id); if(expandedDrugNotes.has(k)) expandedDrugNotes.delete(k); else expandedDrugNotes.add(k); renderToday(); }
+function safeDrugText(value) { return String(value||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
 const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
@@ -191,13 +236,13 @@ function renderToday() {
       const [h,m] = t.split(':').map(Number);
       const mins = (h * 60) + m;
       const diff = mins - nowMins;
-      items.push({ drug:d, time:t, key, done: !!takenLog[key], isTaking: !!takingState[key], mins, diff });
+      items.push({ drug:d, time:t, key, done: !!takenLog[key] && takenLog[key] !== 'skipped', skipped: takenLog[key] === 'skipped', isTaking: !!takingState[key], mins, diff });
     });
   });
   items.sort((a,b) => a.mins - b.mins);
   if (!items.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><h3>Bugün alarm yok</h3></div>`; return; }
-  const pending = items.filter(i=>!i.done).map(i => ({ ...i, overdue: i.diff < 0 }));
-  const done = items.filter(i=>i.done);
+  const pending = items.filter(i=>!i.done && !i.skipped).map(i => ({ ...i, overdue: i.diff < 0 }));
+  const done = items.filter(i=>i.done || i.skipped);
 
   const overduePending = pending
     .filter(i => i.overdue)
@@ -224,23 +269,19 @@ function renderToday() {
 
 function renderFocusCard(item) {
   if (!item) return '';
-  const title = item.overdue ? 'Acil Alman Gereken' : 'Şimdi Alman Gereken';
-  return `
-    <div class="alarm-section-title alarm-section-title-focus">${title}</div>
-    ${alarmHTML(item, 'focus')}
-  `;
+  return `<div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">İLAÇ ZAMANI</div></div>${alarmHTML(item, 'focus')}`;
 }
 
 function renderList(pending, done) {
   let html = '';
   if (pending.length) {
-    html += `<div class="alarm-section-title">Diğerleri (${pending.length})</div>`;
+    html += `<div class="alarm-section-title">SONRAKİ DOZLAR <span class="mono-count">${pending.length}</span></div>`;
     html += pending.map(i => alarmHTML(i, 'list')).join('');
   } else {
-    html += `<div class="alarm-section-title">Diğerleri</div><div class="empty-list-note">Başka bekleyen ilaç yok.</div>`;
+    html += `<div class="alarm-section-title">SONRAKİ DOZLAR</div><div class="empty-list-note">Başka bekleyen doz yok.</div>`;
   }
   if (done.length) {
-    html += `<div class="alarm-section-title">Tamamlandı (${done.length})</div>`;
+    html += `<div class="alarm-section-title">GÜNLÜK KAYITLAR <span class="mono-count">${done.length}</span></div>`;
     html += done.map(i => alarmHTML(i, 'list')).join('');
   }
   return html;
@@ -249,48 +290,54 @@ function renderList(pending, done) {
 function alarmHTML(i, variant='list') {
   const classes = [
     'alarm-item',
-    variant === 'focus' ? 'focus' : 'compact',
-    i.done ? 'done' : 'pending',
+    i.skipped ? 'dose-skipped' : (i.done ? 'dose-taken' : (i.overdue ? 'dose-overdue' : 'dose-upcoming')),
+    variant === 'focus' ? 'focus photo-' + focusPhotoSize() : 'compact',
+    i.done || i.skipped ? 'done' : 'pending',
     i.isTaking ? 'taking' : '',
     i.isNow ? 'now' : '',
     (!i.done && i.overdue) ? 'overdue' : '',
   ].filter(Boolean).join(' ');
   const topTags = !i.done ? `
     <div class="alarm-item-top-tags">
-      ${i.isNow ? '<span class="alarm-flag alarm-flag-now">ŞİMDİ AL</span>' : ''}
 
+      ${''}
     </div>
   ` : '';
-  const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
+  const doneOverlay = i.skipped ? '<div class="alarm-done-overlay">ATLANDI</div>' : (i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '');
+  const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
+  const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
     ? `<div class="alarm-overdue-text" role="status">GECİKTİ · ${formatDelayText(i.diff)}</div>`
-    : (!i.done ? '<div class="alarm-waiting-text" role="status">BEKLİYOR</div>' : '');
+    : (!i.done && !i.skipped ? '<div class="alarm-waiting-text" role="status">BEKLİYOR</div>' : '');
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
-  const usageDisplay = usageCondition === 'tok'
-    ? '🍽 TOK'
-    : '⚠️ AÇ';
+  const usageDisplay = ({tok:'TOK KARNINA',ac:'AÇ KARNINA',farketmez:'AÇ / TOK FARK ETMEZ',ozel:'ÖZEL TALİMAT',belirtilmedi:'TALİMAT BELİRTİLMEDİ'})[usageCondition];
   const remaining = parseInt(i.drug.stock, 10) || 0;
   const dailyDose = Math.max(1, parseInt(i.drug.daily, 10) || 1);
   const daysLeft = Math.floor(remaining / dailyDose);
   const stockInfo = remaining <= 0
-    ? '<div class="alarm-stock-warning stock-empty">📦 Stok bitti</div>'
-    : (daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">📦 Stok az: ${daysLeft} gün</div>` : '');
-  return `<div class="${classes}" onclick="toggleTaken('${i.key}')">
+    ? '<div class="alarm-stock-warning stock-empty">Stok bitti · İlacını yenile</div>'
+    : (daysLeft <= 3 ? `<div class="alarm-stock-warning stock-empty">İlacını yenile · Yaklaşık ${daysLeft} gün kaldı</div>` :
+       daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">İlacın azalıyor · Yaklaşık ${daysLeft} gün kaldı</div>` : '');
+  return `<div class="${classes}">
     ${topTags}
     ${doneOverlay}
     <div class="alarm-image-wrap">
       ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     </div>
-    <div class="alarm-name">${i.drug.name}</div>
-    <div class="alarm-time">${i.time}</div>
-    <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
+    <div class="alarm-name">${i.drug.purpose ? `<button type="button" class="alarm-name-toggle" aria-expanded="${expandedDrugNotes.has(String(i.drug.id))}" onclick="toggleDrugNote('${i.drug.id}')">${safeDrugText(i.drug.name)} ⌄</button>` : safeDrugText(i.drug.name)}</div>
+    ${i.drug.purpose && expandedDrugNotes.has(String(i.drug.id)) ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.purpose)}</div>` : ''}
+    <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
+    ${i.skipped ? `<div class="dose-time-detail">Atlandı · Planlanan ${i.time}</div>` : i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
+    <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><span class="alarm-dose-tag">${i.drug.daily} ADET</span></div>
+    ${i.drug.usageNote ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.usageNote)}</div>` : ""}
     <div class="alarm-support">
       ${overdueInfo}
-      <div class="alarm-dose">${i.drug.daily} adet · ${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
+      <div class="alarm-dose">${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
       ${stockInfo}
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="event.stopPropagation();toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
+      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="toggleTaken('${i.key}')">${i.done || i.skipped ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
+      ${!i.done && !i.skipped ? `<button type="button" class="alarm-skip-action" onclick="skipDose('${i.key}')">ATLADIM</button>` : ''}
     </div>
   </div>`;
 }
@@ -300,8 +347,10 @@ function toggleTaken(key) {
   const id = parts[1];
   const d = drugs.find(x => x.id == id);
   if (takenLog[key]) {
+    if (!confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
+    const wasTaken = takenLog[key] !== 'skipped';
     delete takenLog[key];
-    if (d) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
+    if (d && wasTaken) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
     saveDrugs(drugs); saveLog(takenLog);
     renderToday();
     renderDrugs();
@@ -316,7 +365,7 @@ function toggleTaken(key) {
   setTimeout(() => {
     if (!takingState[key]) return;
     delete takingState[key];
-    takenLog[key] = true;
+    takenLog[key] = new Date().toISOString();
     if (d && d.stock > 0) { d.stock = Math.max(0,(d.stock||0)-1); logHistory(d.id,'İlaç alındı'); }
     saveDrugs(drugs); saveLog(takenLog);
     renderToday();
@@ -325,10 +374,22 @@ function toggleTaken(key) {
   }, 650);
 }
 
+function skipDose(key) {
+  if (takenLog[key] || takingState[key]) return;
+  if (!confirm('Bu dozu atlandı olarak kaydetmek istiyor musunuz? İlaç alınmış sayılmayacak.')) return;
+  takenLog[key] = 'skipped';
+  const d = drugs.find(x => String(x.id) === key.split('_')[1]);
+  if (d) logHistory(d.id, 'Doz atlandı');
+  saveLog(takenLog);
+  renderToday();
+  syncPushSchedule();
+}
+
 function renderStats() {
   const today = todayStr();
   let total=0, done=0;
-  drugs.forEach(d => { if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`]) done++; }); });
+  drugs.forEach(d => { if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`] && takenLog[`${today}_${d.id}_${t}`] !== 'skipped') done++; }); });
+  if (!document.getElementById('stat-total')) return;
   document.getElementById('stat-total').textContent = drugs.length;
   document.getElementById('stat-today').textContent = total;
   document.getElementById('stat-done').textContent  = done;
@@ -365,6 +426,8 @@ function openAddModal(drugId=null) {
   if (drugId) {
     const d = drugs.find(x=>x.id==drugId);
     document.getElementById('drug-name').value     = d.name||'';
+    document.getElementById('drug-purpose').value = d.purpose||'';
+    document.getElementById('drug-usage-note').value = d.usageNote||'';
     document.getElementById('drug-doctor').value   = d.doctor||'';
     document.getElementById('drug-hospital').value = d.hospital||'';
     document.getElementById('drug-date').value     = d.date||'';
@@ -380,11 +443,11 @@ function openAddModal(drugId=null) {
     else { document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block'; }
     renderTimeSlots(d.times||[]);
   } else {
-    document.getElementById('drug-name').value=''; document.getElementById('drug-doctor').value=''; document.getElementById('drug-hospital').value='';
+    document.getElementById('drug-name').value=''; document.getElementById('drug-purpose').value=''; document.getElementById('drug-usage-note').value=''; document.getElementById('drug-doctor').value=''; document.getElementById('drug-hospital').value='';
     document.getElementById('drug-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('drug-daily').value=1; document.getElementById('drug-duration').value='omur_boyu';
     document.getElementById('drug-days').value=''; document.getElementById('drug-alarm').checked=true;
-    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="tok"]');
+    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="belirtilmedi"]');
     if (defaultUsageEl) defaultUsageEl.checked = true;
     stockVal=30;
     document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block';
@@ -394,6 +457,8 @@ function openAddModal(drugId=null) {
   toggleDuration();
   document.getElementById('add-modal').classList.add('open');
   document.getElementById('detail-modal').classList.remove('open');
+  const editor = document.querySelector('#add-modal .modal');
+  if (editor) editor.scrollTop = 0;
 }
 
 function closeModal() {
@@ -436,13 +501,17 @@ function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElement
 
 function saveDrug() {
   const name = document.getElementById('drug-name').value.trim();
-  if (!name) { alert('İlaç adı zorunlu!'); return; }
+  if (!name) { alert('İlaç adını yazın.'); document.getElementById('drug-name').focus(); return; }
   const prev = document.getElementById('photo-preview');
   const photo = prev.style.display!=='none' ? prev.src : null;
   const usageCondition = normalizeUsageCondition((document.querySelector('input[name="usage-condition"]:checked')||{}).value);
+  const usageNote = document.getElementById('drug-usage-note').value.trim();
+  if (usageCondition === 'ozel' && !usageNote) { alert('Özel talimat seçildiğinde kullanım talimatını yazın.'); document.getElementById('drug-usage-note').focus(); return; }
   const drug = {
     id: editId || Date.now(),
     name, photo,
+    purpose: document.getElementById('drug-purpose').value.trim(),
+    usageNote,
     doctor:   document.getElementById('drug-doctor').value.trim(),
     hospital: document.getElementById('drug-hospital').value.trim(),
     date:     document.getElementById('drug-date').value,
@@ -574,7 +643,7 @@ async function setupFirebaseMessaging() {
 
     if (token) {
       localStorage.setItem(LS_FCM_TOKEN, token);
-      console.log('FCM token:', token);
+      console.info('FCM token alındı.');
     } else {
       console.warn('FCM token alınamadı.');
     }
@@ -650,64 +719,68 @@ function buildAlarmPlan() {
 }
 
 async function postPushJSON(path, payload) {
-  if (!PUSH_SERVER_BASE_URL) return;
-  const res = await fetch(`${PUSH_SERVER_BASE_URL}${path}`, {
+  const token = localStorage.getItem(CLOUD_CREDENTIAL_KEY);
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) throw new Error('Cihaz eşleştirilmemiş');
+  const res = await fetch(CLOUD_API + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
     body: JSON.stringify(payload),
+    cache: 'no-store'
   });
-  if (!res.ok) throw new Error(`Push API hata: ${res.status}`);
+  if (!res.ok) throw new Error('Push API hata: ' + res.status);
+  return res.json();
 }
 
 async function setupWebPush() {
-  if (!isWebPushCapable()) return;
-  if (!isStandalonePwa()) return;
-  if (!PUSH_PUBLIC_KEY || !PUSH_SERVER_BASE_URL) {
-    console.warn('PUSH_PUBLIC_KEY veya PUSH_SERVER_BASE_URL ayarlı değil.');
-    return;
-  }
+  if (!isWebPushCapable() || !isStandalonePwa()) return;
+  if (!PUSH_PUBLIC_KEY || !localStorage.getItem(CLOUD_CREDENTIAL_KEY)) return;
   const reg = await navigator.serviceWorker.ready;
   let subscription = await reg.pushManager.getSubscription();
   if (!subscription) {
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(PUSH_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(PUSH_PUBLIC_KEY)
     });
   }
-  await postPushJSON('/api/push/subscriptions', {
-    subscription,
-    userAgent: navigator.userAgent,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul',
-    standalone: isStandalonePwa(),
-  });
-  await syncPushSchedule();
+  await postPushJSON('/api/push-subscriptions', subscription.toJSON());
 }
 
+// Scheduling requires a separate authenticated backend endpoint and is deliberately
+// disabled until the server can safely persist and dispatch the alarm plan.
 async function syncPushSchedule() {
-  if (!PUSH_SERVER_BASE_URL) return;
-  if (!isWebPushCapable() || Notification.permission !== 'granted') return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const subscription = await reg.pushManager.getSubscription();
-    if (!subscription) return;
-    await postPushJSON('/api/push/schedules', {
-      endpoint: subscription.endpoint,
-      alarms: buildAlarmPlan(),
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.warn('Push schedule sync hatası:', err);
-  }
+  return;
 }
 
 // ── UTILS ──
-function todayStr() { return new Date().toISOString().split('T')[0]; }
+function todayStr() { const d=new Date(); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-'); }
 function formatDate(s) { return s ? new Date(s).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : ''; }
 
+// Full, local-only backup. No medication data is sent to a server.
+function downloadBackup(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function currentBackup() {
+  return {
+    format: 'ilac-takip-backup',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    drugs: loadDrugs(),
+    takenLog: loadLog(),
+    history: loadHistory()
+  };
+}
+
 function exportData() {
-  const blob = new Blob([JSON.stringify({drugs,takenLog},null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='ilac-yedek-'+todayStr()+'.json'; a.click();
+  downloadBackup(currentBackup(), 'ilac-yedek-' + todayStr() + '.json');
 }
 
 function importData() {
@@ -717,30 +790,100 @@ function importData() {
   input.onchange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Yedek dosyası 5 MB sınırını aşıyor.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result);
-        if (!parsed || !Array.isArray(parsed.drugs) || typeof parsed.takenLog !== 'object') {
-          alert('Geçersiz yedek dosyası.');
+        // Accept the older {drugs,takenLog} export without erasing existing history.
+        if (!parsed || !Array.isArray(parsed.drugs) || !parsed.takenLog ||
+            typeof parsed.takenLog !== 'object' || Array.isArray(parsed.takenLog) ||
+            (parsed.history !== undefined && !Array.isArray(parsed.history)) ||
+            parsed.drugs.length > 1000 || parsed.drugs.some(d => !d || typeof d !== 'object' ||
+              typeof d.name !== 'string' || !d.name.trim())) {
+          alert('Geçersiz veya desteklenmeyen yedek dosyası.');
           return;
         }
-        drugs = parsed.drugs.map(normalizeDrug);
-        takenLog = parsed.takenLog || {};
-        saveDrugs(drugs);
-        saveLog(takenLog);
+        const incomingDrugs = parsed.drugs.map(normalizeDrug);
+        const incomingHistory = parsed.history !== undefined ? parsed.history : loadHistory();
+        if (!confirm('Mevcut ilaçlar ve ALDIM kayıtları bu yedekle değiştirilecek. Önce mevcut verilerin yedeği indirilecek. Devam edilsin mi?')) return;
+        // Download an undo backup before any local data is overwritten.
+        downloadBackup(currentBackup(), 'ilac-geri-al-' + todayStr() + '.json');
+        saveDrugs(incomingDrugs);
+        saveLog(parsed.takenLog);
+        if (parsed.history !== undefined) saveHistory(incomingHistory);
+        drugs = incomingDrugs;
+        takenLog = parsed.takenLog;
         renderAll();
         renderHistoryPage();
         scheduleAlarms();
         syncPushSchedule();
-        alert('Yedek başarıyla yüklendi.');
+        alert('Yedek yüklendi. Önceki verilerin geri alma dosyasını saklayın.');
       } catch (err) {
-        alert('Dosya okunamadı. Lütfen geçerli bir JSON dosyası seçin.');
+        alert('Dosya okunamadı veya yükleme tamamlanamadı. Mevcut yedeğinizi kontrol edin.');
       }
     };
     reader.readAsText(file);
   };
   input.click();
+}
+
+const CLOUD_API = 'https://ilac-takip-api.runanyrun.workers.dev';
+const CLOUD_CREDENTIAL_KEY = 'ilac_test_device_token_v1';
+
+function openCloudSetup() {
+  const modal = document.getElementById('cloud-modal');
+  document.getElementById('cloud-invite').value = '';
+  document.getElementById('cloud-status').textContent =
+    localStorage.getItem(CLOUD_CREDENTIAL_KEY)
+      ? 'Bu tarayıcıda test cihazı anahtarı bulunuyor. Yeniden eşleştirmek mevcut anahtarı değiştirebilir.'
+      : 'Henüz eşleştirilmedi. Mevcut ilaç kayıtlarınız yalnızca bu cihazda kalır.';
+  modal.classList.add('open');
+}
+
+function closeCloudSetup() {
+  document.getElementById('cloud-invite').value = '';
+  document.getElementById('cloud-modal').classList.remove('open');
+}
+
+async function connectCloudDevice() {
+  const input = document.getElementById('cloud-invite');
+  const status = document.getElementById('cloud-status');
+  const button = document.getElementById('cloud-connect-btn');
+  const invite = input.value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(invite)) {
+    status.textContent = 'Davet kodu 64 karakterlik onaltılık değer olmalı.';
+    return;
+  }
+  if (localStorage.getItem(CLOUD_CREDENTIAL_KEY) &&
+      !confirm('Mevcut test cihazı bağlantısı değiştirilecek. Devam edilsin mi?')) return;
+  button.disabled = true;
+  status.textContent = 'Eşleştirme deneniyor…';
+  try {
+    const response = await fetch(CLOUD_API + '/api/devices', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ invite }),
+      cache: 'no-store'
+    });
+    const result = await response.json();
+    if (!response.ok || !/^[a-f0-9]{64}$/.test(result.token || '')) {
+      status.textContent = response.status === 403
+        ? 'Kod geçersiz veya daha önce kullanılmış.'
+        : 'Eşleştirme başarısız (' + response.status + ').';
+      return;
+    }
+    localStorage.setItem(CLOUD_CREDENTIAL_KEY, result.token);
+    input.value = '';
+    status.textContent = 'Test cihazı eşleştirildi. Bildirim gönderimi henüz etkin değil.';
+  } catch {
+    status.textContent = 'Sunucuya bağlanılamadı. İnternet bağlantısını kontrol edin.';
+  } finally {
+    button.disabled = false;
+  }
 }
 
 document.getElementById('add-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
