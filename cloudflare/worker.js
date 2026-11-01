@@ -5,6 +5,42 @@ const hash = async (value) => Array.from(new Uint8Array(await crypto.subtle.dige
 const validId = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(value);
 const validTime = (value) => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
 
+
+const base64url = bytes => {
+  let binary = '';
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
+};
+const decode64 = value => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)), c => c.charCodeAt(0));
+const PUSH_HOSTS = [
+  'fcm.googleapis.com', 'updates.push.services.mozilla.com',
+  'web.push.apple.com'
+];
+const allowedPushEndpoint = url => {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'https:' && !u.username && !u.password && u.port === '' &&
+      PUSH_HOSTS.includes(u.hostname);
+  } catch { return false; }
+};
+async function sendEmptyWebPush(subscription, env) {
+  if (!allowedPushEndpoint(subscription.endpoint)) throw Error('push_host_not_allowed');
+  if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC_KEY || !env.VAPID_CONTACT) throw Error('vapid_not_configured');
+  const audience = new URL(subscription.endpoint).origin;
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64url(new TextEncoder().encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
+  const claims = base64url(new TextEncoder().encode(JSON.stringify({ aud: audience, exp: now + 3600, sub: env.VAPID_CONTACT })));
+  const signingInput = header + '.' + claims;
+  const key = await crypto.subtle.importKey('jwk', JSON.parse(env.VAPID_PRIVATE_JWK), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(signingInput)));
+  const jwt = signingInput + '.' + base64url(signature);
+  // Empty payload: the service worker displays a generic reminder. No medical data leaves the server.
+  return fetch(subscription.endpoint, {
+    method: 'POST',
+    headers: { authorization: 'vapid t=' + jwt + ', k=' + env.VAPID_PUBLIC_KEY, ttl: '60', urgency: 'normal', 'content-length': '0' }
+  });
+}
+
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
@@ -84,6 +120,25 @@ export default {
         }
         return reply({ ok: true, registered: true }, 200);
       } catch { return reply({ error: 'database_error' }, 503); }
+    }
+    if (request.method === 'GET' && path === '/api/push/config') {
+      return reply({ configured: !!(env.VAPID_PRIVATE_JWK && env.VAPID_PUBLIC_KEY && env.VAPID_CONTACT), publicKey: env.VAPID_PUBLIC_KEY || null });
+    }
+    if (request.method === 'POST' && path === '/api/push/test') {
+      if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC_KEY || !env.VAPID_CONTACT) return reply({ error: 'vapid_not_configured' }, 503);
+      const rows = await env.DB.prepare('SELECT endpoint FROM push_subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 3').bind(owner.user_id).all();
+      if (!rows.results.length) return reply({ error: 'subscription_missing' }, 404);
+      const results = [];
+      for (const subscription of rows.results) {
+        try {
+          const sent = await sendEmptyWebPush(subscription, env);
+          results.push({ status: sent.status, accepted: sent.status === 201 || sent.status === 202 });
+          if (sent.status === 404 || sent.status === 410) {
+            await env.DB.prepare('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?').bind(owner.user_id, subscription.endpoint).run();
+          }
+        } catch { results.push({ status: null, accepted: false }); }
+      }
+      return reply({ results, accepted: results.some(r => r.accepted) }, results.some(r => r.accepted) ? 200 : 502);
     }
     // Lossless opt-in backup storage. The server never modifies the backup's drug fields.
     if (path === '/api/backup' && request.method === 'GET') {
