@@ -558,3 +558,59 @@ html, body, #app { background: var(--bg); }
 .fab, .btn-primary { background: var(--text); color: #fff; box-shadow: none; }
 .empty-list-note { font-size: 13px; font-weight: 600; }
 @media (max-width: 370px) { .header { padding-left: 14px; padding-right: 14px; } .header-actions { gap: 0; } .icon-btn { width: 32px; } }
+
+
+/* MONO refinements: make the current dose dominant, later doses truly secondary. */
+#page-bugun .alarm-item.focus,
+#page-bugun .alarm-item.focus.now,
+#page-bugun .alarm-item.focus.overdue,
+#page-bugun .alarm-item.focus.taking {
+  background: #fff; border: 1px solid #dededb;
+  box-shadow: 0 14px 44px rgba(0,0,0,.035);
+  gap: 14px; transform: none;
+}
+#page-bugun .alarm-item.focus .alarm-image-wrap { margin: 0; }
+#page-bugun .alarm-item.focus .alarm-photo,
+#page-bugun .alarm-item.focus .alarm-photo-placeholder {
+  width: 96px; height: 96px; border: 1px solid #e7e7e5;
+  box-shadow: none; border-radius: 20px; font-size: 42px;
+}
+#page-bugun .alarm-item.focus .alarm-time {
+  font-size: clamp(44px, 15vw, 70px); color: #17191b;
+  font-variant-numeric: tabular-nums;
+}
+#page-bugun .alarm-item.focus .alarm-name {
+  font-size: clamp(30px, 9vw, 46px); color: #17191b;
+  display: block; overflow: visible; -webkit-line-clamp: unset;
+}
+#page-bugun .alarm-item.focus .alarm-dose { color: #626466; font-size: 14px; }
+#page-bugun .alarm-item.focus .alarm-usage-badge { min-height: 42px; font-size: 14px; border-radius: 12px; }
+#page-bugun .alarm-item.focus .alarm-flag { font-size: 11px; padding: 7px 11px; }
+#page-bugun .alarm-item.focus .alarm-overdue-text {
+  background: #ededeb; color: #292b2d; font-size: 13px; padding: 8px;
+}
+#page-bugun .alarm-item.focus .alarm-action,
+#page-bugun .alarm-item.focus.taking .alarm-action {
+  background: #17191b; color: white; box-shadow: none; border: none;
+  font-size: 16px; min-height: 58px;
+}
+#page-bugun .alarm-item.compact,
+#page-bugun .alarm-item.compact.pending.now,
+#page-bugun .alarm-item.compact.overdue,
+#page-bugun .alarm-item.compact.done {
+  background: rgba(255,255,255,.78); border: 1px solid #e4e4e1;
+  box-shadow: none; padding: 16px; gap: 9px;
+}
+#page-bugun .alarm-item.compact .alarm-image-wrap { display: none; }
+#page-bugun .alarm-item.compact .alarm-name { color: #202123; font-size: 19px; letter-spacing: -.5px; }
+#page-bugun .alarm-item.compact .alarm-time { color: #292b2c; font-size: 26px; font-variant-numeric: tabular-nums; }
+#page-bugun .alarm-item.compact .alarm-dose { color: #777; font-size: 12px; }
+#page-bugun .alarm-item.compact .alarm-usage-badge { min-height: 36px; font-size: 12px; padding: 6px; }
+#page-bugun .alarm-item.compact .alarm-flag { font-size: 10px; padding: 5px 8px; }
+#page-bugun .alarm-item.compact .alarm-action { background: #eee; color: #17191b; border: 1px solid #ddd; box-shadow: none; min-height: 44px; font-size: 13px; }
+#page-bugun .alarm-item.done .alarm-done-overlay { background: #e9e9e7; color: #363738; box-shadow: none; font-size: 12px; }
+#page-bugun .alarm-item.compact .alarm-stock-warning { font-size: 12px; }
+#page-bugun .alarm-item:focus-within { outline: 2px solid #888; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .alarm-item, .alarm-action, .drug-card { animation: none !important; transition: none !important; }
+}
