@@ -21,6 +21,7 @@
         <p id="header-date"></p>
       </div>
       <div class="header-actions">
+        <button type="button" class="menu-icon-trigger" id="main-settings-trigger" aria-label="Ayarlar menüsünü aç" aria-controls="main-settings-panel" aria-expanded="false" onclick="toggleMainSettings()">☰</button>
         <button class="icon-btn" onclick="requestNotif()" title="Bildirim">🔔</button>
         <button class="icon-btn" onclick="exportData()" title="Yedek">💾</button>
         <button class="icon-btn" onclick="importData()" title="Geri Yükle">📂</button>
@@ -28,6 +29,7 @@
       </div>
     </div>
   </div>
+  <section class="main-settings-panel" id="main-settings-panel" hidden aria-label="Ayarlar"><div class="settings-panel-heading">AYARLAR</div><div class="settings-panel-label">İlaç fotoğrafı boyutu</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option" data-photo-size="large" onclick="setFocusPhotoSize('large')">Büyük</button><button type="button" class="photo-size-option" data-photo-size="small" onclick="setFocusPhotoSize('small')">Küçük</button><button type="button" class="photo-size-option" data-photo-size="hidden" onclick="setFocusPhotoSize('hidden')">Gizle</button></div></section>
   <div class="tabs">
     <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">💊 İlaçlar</button>
     <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">📅 Bugün</button>
