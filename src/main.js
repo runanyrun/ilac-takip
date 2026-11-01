@@ -300,7 +300,7 @@ function alarmHTML(i, variant='list') {
   const topTags = !i.done ? `
     <div class="alarm-item-top-tags">
 
-      ${i.overdue ? '<span class="alarm-flag alarm-flag-overdue">GECİKTİ</span>' : ''}
+      ${''}
     </div>
   ` : '';
   const doneOverlay = i.skipped ? '<div class="alarm-done-overlay">ATLANDI</div>' : (i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '');
