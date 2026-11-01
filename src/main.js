@@ -10,6 +10,9 @@ function updateMainSettings() {
   const panel = document.getElementById('main-settings-panel');
   const trigger = document.getElementById('main-settings-trigger');
   if (panel) panel.hidden = !mainSettingsOpen;
+  const backdrop = document.getElementById('settings-backdrop');
+  if (backdrop) backdrop.hidden = !mainSettingsOpen;
+  document.body.classList.toggle('settings-open', mainSettingsOpen);
   if (trigger) trigger.setAttribute('aria-expanded', String(mainSettingsOpen));
   document.querySelectorAll('[data-photo-size]').forEach(button => {
     const selected = button.dataset.photoSize === focusPhotoSize();
@@ -18,6 +21,7 @@ function updateMainSettings() {
   });
 }
 function toggleMainSettings() { mainSettingsOpen = !mainSettingsOpen; updateMainSettings(); }
+document.addEventListener('keydown', event => { if (event.key === 'Escape' && mainSettingsOpen) toggleMainSettings(); });
 function setFocusPhotoSize(size) {
   localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large');
   renderToday();
