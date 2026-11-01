@@ -53,6 +53,38 @@ export default {
     const digest = await hash(authorization.slice(7));
     const owner = await env.DB.prepare('SELECT user_id FROM device_credentials WHERE token_hash = ?').bind(digest).first();
     if (!owner) return reply({ error: 'unauthorized' }, 401);
+    // Store browser Web Push subscriptions for the authenticated test device.
+    // Actual delivery requires VAPID signing and a scheduled sender (not enabled here).
+    if (path === '/api/push-subscriptions' && request.method === 'POST') {
+      if (!(request.headers.get('content-type') || '').startsWith('application/json')) return reply({ error: 'json_required' }, 415);
+      let subscription;
+      try {
+        const raw = await request.text();
+        if (new TextEncoder().encode(raw).length > 8192) return reply({ error: 'too_large' }, 413);
+        subscription = JSON.parse(raw);
+      } catch { return reply({ error: 'invalid_json' }, 400); }
+      const endpoint = subscription?.endpoint;
+      const p256dh = subscription?.keys?.p256dh;
+      const auth = subscription?.keys?.auth;
+      let endpointUrl;
+      try { endpointUrl = new URL(endpoint); } catch { return reply({ error: 'invalid_subscription' }, 400); }
+      if (endpointUrl.protocol !== 'https:' || endpointUrl.username || endpointUrl.password ||
+          typeof endpoint !== 'string' || endpoint.length > 2048 ||
+          typeof p256dh !== 'string' || !/^[A-Za-z0-9_-]{80,120}$/.test(p256dh) ||
+          typeof auth !== 'string' || !/^[A-Za-z0-9_-]{16,40}$/.test(auth)) {
+        return reply({ error: 'invalid_subscription' }, 400);
+      }
+      try {
+        const existing = await env.DB.prepare('SELECT user_id FROM push_subscriptions WHERE endpoint = ?').bind(endpoint).first();
+        if (existing && existing.user_id !== owner.user_id) return reply({ error: 'subscription_conflict' }, 409);
+        if (existing) {
+          await env.DB.prepare('UPDATE push_subscriptions SET p256dh = ?, auth = ? WHERE endpoint = ? AND user_id = ?').bind(p256dh, auth, endpoint, owner.user_id).run();
+        } else {
+          await env.DB.prepare('INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?, ?)').bind(crypto.randomUUID(), owner.user_id, endpoint, p256dh, auth).run();
+        }
+        return reply({ ok: true, registered: true }, 200);
+      } catch { return reply({ error: 'database_error' }, 503); }
+    }
     // Lossless opt-in backup storage. The server never modifies the backup's drug fields.
     if (path === '/api/backup' && request.method === 'GET') {
       const row = await env.DB.prepare('SELECT payload, revision, updated_at FROM user_backups WHERE user_id = ?').bind(owner.user_id).first();
