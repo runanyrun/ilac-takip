@@ -100,21 +100,22 @@
       <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Kullanım Durumu</label>
+      <label class="form-label">Yemekle kullanım talimatı</label><p class="form-hint">İlaç kutusu, reçete veya eczacı talimatına göre seçin.</p>
       <div class="usage-condition-group">
+        <label class="usage-condition-option"><input type="radio" name="usage-condition" value="belirtilmedi" checked><span>Henüz belirtilmedi</span></label>
         <label class="usage-condition-option">
           <input type="radio" name="usage-condition" value="ac">
           <span>Aç</span>
         </label>
         <label class="usage-condition-option">
-          <input type="radio" name="usage-condition" value="tok" checked>
+          <input type="radio" name="usage-condition" value="tok">
           <span>Tok</span>
         </label>
         <label class="usage-condition-option"><input type="radio" name="usage-condition" value="farketmez"><span>Aç / tok fark etmez</span></label>
         <label class="usage-condition-option"><input type="radio" name="usage-condition" value="ozel"><span>Özel talimat</span></label>
       </div>
     </div>
-    <div class="form-group"><label class="form-label" for="drug-usage-note">Kullanım talimatı (isteğe bağlı)</label><input class="form-input" id="drug-usage-note" maxlength="120" placeholder="Doktor / eczacı talimatı"></div>
+    <div class="form-group"><label class="form-label" for="drug-usage-note">Ek kullanım talimatı</label><input class="form-input" id="drug-usage-note" maxlength="120" placeholder="Doktor / eczacı talimatı"></div>
     <div class="form-group">
       <label class="form-label">Kutudaki Tablet Adedi</label>
       <div class="stock-counter">
