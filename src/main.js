@@ -6,6 +6,7 @@ const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
 function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; }
 let mainSettingsOpen = false;
+let settingsPreviousFocus = null;
 function updateMainSettings() {
   const panel = document.getElementById('main-settings-panel');
   const trigger = document.getElementById('main-settings-trigger');
@@ -20,8 +21,25 @@ function updateMainSettings() {
     button.setAttribute('aria-pressed', String(selected));
   });
 }
-function toggleMainSettings() { mainSettingsOpen = !mainSettingsOpen; updateMainSettings(); }
-document.addEventListener('keydown', event => { if (event.key === 'Escape' && mainSettingsOpen) toggleMainSettings(); });
+function toggleMainSettings() {
+  const opening = !mainSettingsOpen;
+  if (opening) settingsPreviousFocus = document.activeElement;
+  mainSettingsOpen = opening;
+  updateMainSettings();
+  if (opening) (window.matchMedia('(max-width:600px)').matches ? document.querySelector('.settings-mobile-back') : document.querySelector('.settings-close'))?.focus();
+  else if (settingsPreviousFocus && typeof settingsPreviousFocus.focus === 'function') settingsPreviousFocus.focus();
+}
+document.addEventListener('keydown', event => {
+  if (!mainSettingsOpen) return;
+  if (event.key === 'Escape') { event.preventDefault(); toggleMainSettings(); return; }
+  if (event.key !== 'Tab') return;
+  const panel = document.getElementById('main-settings-panel');
+  const focusable = [...panel.querySelectorAll('button:not([disabled])')].filter(el => getComputedStyle(el).display !== 'none');
+  if (!focusable.length) return;
+  const first = focusable[0], last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+});
 function setFocusPhotoSize(size) {
   localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large');
   renderToday();
