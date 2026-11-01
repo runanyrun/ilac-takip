@@ -626,3 +626,20 @@ html, body, #app { background: var(--bg); }
 #page-bugun .alarm-item.compact .alarm-usage-badge.tok {
   background: #efefed; color: #353638; font-weight: 800; letter-spacing: .08em;
 }
+
+/* User-controlled focus image: large for visual identification, small for discretion. */
+.focus-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.focus-heading .alarm-section-title-focus { margin:4px 0; }
+.photo-size-control { display:flex; padding:3px; background:#e9e9e7; border-radius:12px; gap:3px; }
+.photo-size-option { border:0; background:transparent; color:#5c5d5f; border-radius:9px; padding:9px 10px; font:750 11px/1.2 system-ui,sans-serif; cursor:pointer; }
+.photo-size-option.selected { background:#fff; color:#191a1b; box-shadow:0 1px 3px #00000010; }
+.photo-size-option:focus-visible { outline:2px solid #191a1b; outline-offset:2px; }
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width:min(66vw,240px); height:min(66vw,240px); max-width:100%;
+  border-radius:26px; object-fit:contain; background:#f6f6f4; font-size:72px;
+}
+#page-bugun .alarm-item.focus.photo-small .alarm-photo,
+#page-bugun .alarm-item.focus.photo-small .alarm-photo-placeholder {
+  width:76px; height:76px; border-radius:16px; font-size:32px;
+}
