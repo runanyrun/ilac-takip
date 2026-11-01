@@ -693,3 +693,5 @@ html, body, #app { background: var(--bg); }
 #page-bugun .alarm-item.compact .alarm-dose-tags{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
 #page-bugun .alarm-item.compact .alarm-dose-tag{font-size:12px;color:#666}
 
+
+.alarm-name-toggle{border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;cursor:pointer;padding:4px 8px;border-radius:10px}.alarm-name-toggle:focus-visible{outline:3px solid #333}.alarm-purpose-note{margin:7px auto 9px;max-width:90%;padding:10px 13px;border-radius:12px;background:#f2f2f0;color:#333;font-size:14px;line-height:1.5;text-align:center;overflow-wrap:anywhere}
