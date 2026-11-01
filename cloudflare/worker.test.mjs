@@ -87,3 +87,13 @@ test('preflight allows If-Match only for the production origin', async () => {
   const rejected = await worker.fetch(new Request('https://example.workers.dev/api/backup', { method: 'OPTIONS', headers: { origin: 'https://evil.example' } }), env);
   assert.equal(rejected.status, 403);
 });
+
+test('backup validation rejects malformed payloads and missing preconditions', async () => {
+  const { env, token } = environment();
+  const headers = { 'content-type': 'application/json' };
+  const valid = { format: 'ilac-takip-backup', version: 2, drugs: [{ name: 'Deneme' }], takenLog: {}, history: [] };
+  assert.equal((await call(env, token, 'PUT', '/api/backup', valid, headers)).status, 428);
+  assert.equal((await call(env, token, 'PUT', '/api/backup', { ...valid, history: {} }, { ...headers, 'if-match': '*' })).status, 400);
+  assert.equal((await call(env, token, 'PUT', '/api/backup', { ...valid, history: [], extra: 'x'.repeat(270000) }, { ...headers, 'if-match': '*' })).status, 413);
+  assert.equal((await call(env, 'b'.repeat(64), 'GET', '/api/backup')).status, 401);
+});
