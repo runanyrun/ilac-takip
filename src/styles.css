@@ -513,3 +513,48 @@ select.form-input { appearance: none; background-image: url("data:image/svg+xml,
 
 @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .drug-card { animation: slideUp 0.3s ease both; }
+
+
+/* MONO / FOCUS — minimalist visual layer. Existing workflows and records stay intact. */
+:root {
+  --primary: #17191b; --primary-light: #25272a; --accent: #17191b;
+  --bg: #f4f4f2; --surface: #fff; --surface2: #f8f8f6;
+  --text: #18191b; --muted: #77797b; --border: #e5e5e2;
+  --green: #3b3e3d; --red: #525252; --yellow: #686868;
+  --radius: 22px; --shadow: none;
+}
+html, body, #app { background: var(--bg); }
+.header { background: var(--bg); color: var(--text); padding: calc(30px + env(safe-area-inset-top, 0px)) 22px 16px; }
+.header h1 { font-size: 21px; font-weight: 900; letter-spacing: -1px; }
+.header p { font-size: 12px; color: var(--muted); opacity: 1; letter-spacing: .04em; }
+.header-actions { gap: 3px; }
+.icon-btn { background: transparent; color: var(--text); border: 1px solid transparent; border-radius: 50%; width: 36px; height: 36px; font-size: 17px; }
+.icon-btn:active { background: #e7e7e4; }
+.today-bar { background: transparent; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0; margin: 0 22px; padding: 13px 0; gap: 4px; }
+.today-stat .num { color: var(--text); font-size: 18px; font-weight: 900; }
+.today-stat .lbl { color: var(--muted); font-size: 9px; letter-spacing: 1.5px; }
+.tabs { background: transparent; border-bottom: 1px solid var(--border); padding: 0 12px; }
+.tab { font-size: 12px; letter-spacing: .08em; padding: 15px 6px; font-weight: 800; }
+.tab.active { color: var(--text); }
+.tab.active::after { background: var(--text); height: 2px; left: 30%; right: 30%; }
+.content { padding: 22px 20px calc(120px + env(safe-area-inset-bottom, 0px)); }
+.alarm-section-title { font-size: 10px; font-weight: 900; letter-spacing: 2.2px; color: var(--muted); margin: 29px 3px 14px; }
+.alarm-section-title-focus { font-size: 11px; color: var(--text); margin: 4px 3px 14px; }
+.mono-count { font-weight: 600; letter-spacing: 0; }
+#page-bugun .alarm-item.focus {
+  border: 1px solid #dededb; border-radius: 30px; background: #fff;
+  box-shadow: 0 14px 44px rgba(0,0,0,.035);
+  padding: 26px 24px; min-height: 330px;
+}
+#page-bugun .alarm-item.focus .alarm-name { font-size: clamp(30px, 9vw, 46px); line-height: 1.06; letter-spacing: -1.8px; font-weight: 900; color: var(--text); overflow-wrap: anywhere; }
+#page-bugun .alarm-item.focus .alarm-time { font-size: clamp(44px, 15vw, 70px); line-height: 1; letter-spacing: -3px; font-weight: 900; color: var(--text); }
+#page-bugun .alarm-item.focus .alarm-action { background: var(--text); color: white; border-radius: 16px; font-size: 15px; letter-spacing: 1.3px; font-weight: 900; min-height: 56px; }
+#page-bugun .alarm-item.focus .alarm-flag { background: #f1f1ef; color: #3a3b3d; border: 1px solid #e6e6e3; letter-spacing: 1.4px; }
+#page-bugun .alarm-item.focus .alarm-photo-placeholder { background: #f3f3f1; }
+#page-bugun .alarm-item.compact { border: 1px solid var(--border); border-radius: 18px; box-shadow: none; background: rgba(255,255,255,.75); }
+.drug-card, .history-item { box-shadow: none; border: 1px solid var(--border); }
+.pill-blue, .pill-orange, .pill-green, .pill-gray, .pill-usage, .pill-usage.ac, .pill-usage.tok { background: #efefed; color: #4b4d4e; }
+.alarm-usage-badge, .alarm-usage-badge.ac, .alarm-usage-badge.tok { background: #f0f0ee; color: #3c3e3e; }
+.fab, .btn-primary { background: var(--text); color: #fff; box-shadow: none; }
+.empty-list-note { font-size: 13px; font-weight: 600; }
+@media (max-width: 370px) { .header { padding-left: 14px; padding-right: 14px; } .header-actions { gap: 0; } .icon-btn { width: 32px; } }
