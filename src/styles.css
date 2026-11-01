@@ -668,3 +668,19 @@ html, body, #app { background: var(--bg); }
 #page-bugun .alarm-item.focus.photo-hidden .alarm-image-wrap {display:none;}
 #page-bugun .alarm-skip-action {width:100%;margin-top:9px;padding:12px;border:1px solid #d8d8d6;background:transparent;border-radius:12px;color:#555;font-size:13px;font-weight:700;cursor:pointer;}
 #page-bugun .alarm-skip-action:focus-visible {outline:3px solid #555;outline-offset:2px;}
+
+/* Photo-first focus card: use the whole frame, never crop packaging. */
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width:min(74vw,270px);height:min(74vw,270px);max-width:100%;object-fit:contain;
+  background:#f4f4f2;border:0;box-shadow:none;border-radius:22px;
+}
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {font-size:clamp(78px,20vw,106px);}
+#page-bugun .alarm-item.focus .alarm-image-wrap {margin:0 0 9px;}
+#page-bugun .alarm-item.focus .alarm-item-top-tags {display:none;}
+#page-bugun .alarm-item.focus .alarm-support {gap:5px;}
+#page-bugun .alarm-item.focus .alarm-stock-warning {padding:8px 10px;}
+@media(max-height:720px) and (max-width:600px){
+ #page-bugun .alarm-item.focus.photo-large .alarm-photo,
+ #page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {width:min(64vw,220px);height:min(64vw,220px);}
+}
