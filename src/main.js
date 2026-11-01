@@ -294,29 +294,20 @@ function alarmHTML(i, variant='list') {
     <div class="alarm-name">${i.drug.name}</div>
     <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
     ${i.skipped ? `<div class="dose-time-detail">Atlandı · Planlanan ${i.time}</div>` : i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
-    <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><button type="button" class="alarm-dose-tag alarm-dose-confirm ${doseConfirmed.has(i.key) ? 'is-confirmed' : ''}" aria-pressed="${doseConfirmed.has(i.key)}" onclick="confirmDoseQuantity('${i.key}')">${doseConfirmed.has(i.key) ? '✓ ' : ''}${i.drug.daily} ADET</button></div>
+    <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><span class="alarm-dose-tag">${i.drug.daily} ADET</span></div>
     <div class="alarm-support">
       ${overdueInfo}
       <div class="alarm-dose">${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
       ${stockInfo}
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" ${i.isTaking || (!i.done && !i.skipped && !doseConfirmed.has(i.key)) ? 'disabled' : ''} onclick="toggleTaken('${i.key}')">${i.done || i.skipped ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
+      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="toggleTaken('${i.key}')">${i.done || i.skipped ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
       ${!i.done && !i.skipped ? `<button type="button" class="alarm-skip-action" onclick="skipDose('${i.key}')">ATLADIM</button>` : ''}
     </div>
   </div>`;
 }
 
-const doseConfirmed = new Set();
-function confirmDoseQuantity(key) {
-  if (takenLog[key] || takingState[key]) return;
-  if (doseConfirmed.has(key)) doseConfirmed.delete(key);
-  else doseConfirmed.add(key);
-  renderToday();
-}
-
 function toggleTaken(key) {
-  if (!takenLog[key] && !doseConfirmed.has(key)) return;
   const parts = key.split('_');
   const id = parts[1];
   const d = drugs.find(x => x.id == id);
@@ -324,7 +315,6 @@ function toggleTaken(key) {
     if (!confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
     const wasTaken = takenLog[key] !== 'skipped';
     delete takenLog[key];
-    doseConfirmed.delete(key);
     if (d && wasTaken) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
     saveDrugs(drugs); saveLog(takenLog);
     renderToday();
@@ -341,7 +331,6 @@ function toggleTaken(key) {
     if (!takingState[key]) return;
     delete takingState[key];
     takenLog[key] = new Date().toISOString();
-    doseConfirmed.delete(key);
     if (d && d.stock > 0) { d.stock = Math.max(0,(d.stock||0)-1); logHistory(d.id,'İlaç alındı'); }
     saveDrugs(drugs); saveLog(takenLog);
     renderToday();
@@ -354,7 +343,6 @@ function skipDose(key) {
   if (takenLog[key] || takingState[key]) return;
   if (!confirm('Bu dozu atlandı olarak kaydetmek istiyor musunuz? İlaç alınmış sayılmayacak.')) return;
   takenLog[key] = 'skipped';
-  doseConfirmed.delete(key);
   const d = drugs.find(x => String(x.id) === key.split('_')[1]);
   if (d) logHistory(d.id, 'Doz atlandı');
   saveLog(takenLog);
