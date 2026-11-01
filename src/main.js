@@ -230,7 +230,7 @@ function renderToday() {
 
 function renderFocusCard(item) {
   if (!item) return '';
-  const title = item.overdue ? 'GECİKEN DOZ' : 'BEKLEYEN DOZ';
+  const title = 'İLAÇ ZAMANI';
   return `
     <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" aria-pressed="${focusPhotoSize()==='large'}" onclick="setFocusPhotoSize('large')">Büyük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" aria-pressed="${focusPhotoSize()==='small'}" onclick="setFocusPhotoSize('small')">Küçük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='hidden'?'selected':''}" aria-pressed="${focusPhotoSize()==='hidden'}" onclick="setFocusPhotoSize('hidden')">Gizle</button></div></div>
     ${alarmHTML(item, 'focus')}
