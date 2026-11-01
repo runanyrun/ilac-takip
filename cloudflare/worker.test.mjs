@@ -110,3 +110,11 @@ test('push subscription rejects unauthenticated and invalid requests', async () 
   assert.equal((await call(env, token, 'POST', '/api/push-subscriptions', { ...valid, endpoint: 'http://push.example.test/send' }, { 'content-type': 'application/json' })).status, 400);
   assert.equal((await call(env, token, 'POST', '/api/push-subscriptions', { ...valid, keys: { p256dh: 'bad', auth: 'bad' } }, { 'content-type': 'application/json' })).status, 400);
 });
+
+test('VAPID test endpoint fails closed until signing secrets are configured', async () => {
+  const { env, token } = environment();
+  const response = await call(env, token, 'POST', '/api/push/test');
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, 'vapid_not_configured');
+  assert.equal((await call(env, null, 'POST', '/api/push/test')).status, 401);
+});
