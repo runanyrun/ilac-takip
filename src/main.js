@@ -704,10 +704,32 @@ async function syncPushSchedule() {
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function formatDate(s) { return s ? new Date(s).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) : ''; }
 
+// Full, local-only backup. No medication data is sent to a server.
+function downloadBackup(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function currentBackup() {
+  return {
+    format: 'ilac-takip-backup',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    drugs: loadDrugs(),
+    takenLog: loadLog(),
+    history: loadHistory()
+  };
+}
+
 function exportData() {
-  const blob = new Blob([JSON.stringify({drugs,takenLog},null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='ilac-yedek-'+todayStr()+'.json'; a.click();
+  downloadBackup(currentBackup(), 'ilac-yedek-' + todayStr() + '.json');
 }
 
 function importData() {
@@ -717,25 +739,40 @@ function importData() {
   input.onchange = (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Yedek dosyası 5 MB sınırını aşıyor.');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result);
-        if (!parsed || !Array.isArray(parsed.drugs) || typeof parsed.takenLog !== 'object') {
-          alert('Geçersiz yedek dosyası.');
+        // Accept the older {drugs,takenLog} export without erasing existing history.
+        if (!parsed || !Array.isArray(parsed.drugs) || !parsed.takenLog ||
+            typeof parsed.takenLog !== 'object' || Array.isArray(parsed.takenLog) ||
+            (parsed.history !== undefined && !Array.isArray(parsed.history)) ||
+            parsed.drugs.length > 1000 || parsed.drugs.some(d => !d || typeof d !== 'object' ||
+              typeof d.name !== 'string' || !d.name.trim())) {
+          alert('Geçersiz veya desteklenmeyen yedek dosyası.');
           return;
         }
-        drugs = parsed.drugs.map(normalizeDrug);
-        takenLog = parsed.takenLog || {};
-        saveDrugs(drugs);
-        saveLog(takenLog);
+        const incomingDrugs = parsed.drugs.map(normalizeDrug);
+        const incomingHistory = parsed.history !== undefined ? parsed.history : loadHistory();
+        if (!confirm('Mevcut ilaçlar ve ALDIM kayıtları bu yedekle değiştirilecek. Önce mevcut verilerin yedeği indirilecek. Devam edilsin mi?')) return;
+        // Download an undo backup before any local data is overwritten.
+        downloadBackup(currentBackup(), 'ilac-geri-al-' + todayStr() + '.json');
+        saveDrugs(incomingDrugs);
+        saveLog(parsed.takenLog);
+        if (parsed.history !== undefined) saveHistory(incomingHistory);
+        drugs = incomingDrugs;
+        takenLog = parsed.takenLog;
         renderAll();
         renderHistoryPage();
         scheduleAlarms();
         syncPushSchedule();
-        alert('Yedek başarıyla yüklendi.');
+        alert('Yedek yüklendi. Önceki verilerin geri alma dosyasını saklayın.');
       } catch (err) {
-        alert('Dosya okunamadı. Lütfen geçerli bir JSON dosyası seçin.');
+        alert('Dosya okunamadı veya yükleme tamamlanamadı. Mevcut yedeğinizi kontrol edin.');
       }
     };
     reader.readAsText(file);
