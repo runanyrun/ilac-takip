@@ -5,9 +5,12 @@ const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
 function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; }
+let photoSettingsOpen = false;
+function togglePhotoSettings() { photoSettingsOpen=!photoSettingsOpen; const p=document.getElementById('photo-settings-panel'); if(p)p.hidden=!photoSettingsOpen; }
 function setFocusPhotoSize(size) {
   localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large');
   renderToday();
+  const p=document.getElementById('photo-settings-panel'); if(p)p.hidden=!photoSettingsOpen;
 }
 
 function loadDrugs()   { try { return JSON.parse(localStorage.getItem(LS_DRUGS))   || []; } catch(e){ return []; } }
@@ -235,7 +238,8 @@ function renderFocusCard(item) {
   if (!item) return '';
   const title = 'İLAÇ ZAMANI';
   return `
-    <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" aria-pressed="${focusPhotoSize()==='large'}" onclick="setFocusPhotoSize('large')">Büyük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" aria-pressed="${focusPhotoSize()==='small'}" onclick="setFocusPhotoSize('small')">Küçük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='hidden'?'selected':''}" aria-pressed="${focusPhotoSize()==='hidden'}" onclick="setFocusPhotoSize('hidden')">Gizle</button></div></div>
+    <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><button type="button" class="photo-settings-trigger" onclick="togglePhotoSettings()" aria-label="Fotoğraf ayarları">⚙ Ayarlar</button></div>
+    <div class="photo-settings-panel" id="photo-settings-panel" ${photoSettingsOpen ? '' : 'hidden'}><div>İlaç fotoğrafı boyutu</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" onclick="setFocusPhotoSize('large')">Büyük</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" onclick="setFocusPhotoSize('small')">Küçük</button><button type="button" class="photo-size-option ${focusPhotoSize()==='hidden'?'selected':''}" onclick="setFocusPhotoSize('hidden')">Gizle</button></div></div>
     ${alarmHTML(item, 'focus')}
   `;
 }
@@ -411,7 +415,7 @@ function openAddModal(drugId=null) {
     else { document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block'; }
     renderTimeSlots(d.times||[]);
   } else {
-    document.getElementById('drug-name').value=''; document.getElementById('drug-doctor').value=''; document.getElementById('drug-hospital').value='';
+    document.getElementById('drug-name').value=''; document.getElementById('drug-purpose').value=''; document.getElementById('drug-usage-note').value=''; document.getElementById('drug-doctor').value=''; document.getElementById('drug-hospital').value='';
     document.getElementById('drug-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('drug-daily').value=1; document.getElementById('drug-duration').value='omur_boyu';
     document.getElementById('drug-days').value=''; document.getElementById('drug-alarm').checked=true;
