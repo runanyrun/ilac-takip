@@ -3,6 +3,12 @@ const LS_DRUGS   = 'ilac_drugs_v2';
 const LS_LOG     = 'ilac_log_v2';
 const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
+const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
+function focusPhotoSize() { return localStorage.getItem(LS_PHOTO_SIZE) === 'small' ? 'small' : 'large'; }
+function setFocusPhotoSize(size) {
+  localStorage.setItem(LS_PHOTO_SIZE, size === 'small' ? 'small' : 'large');
+  renderToday();
+}
 
 function loadDrugs()   { try { return JSON.parse(localStorage.getItem(LS_DRUGS))   || []; } catch(e){ return []; } }
 function loadLog()     { try { return JSON.parse(localStorage.getItem(LS_LOG))     || {}; } catch(e){ return {}; } }
@@ -226,7 +232,7 @@ function renderFocusCard(item) {
   if (!item) return '';
   const title = item.overdue ? 'GECİKEN DOZ' : 'SIRADAKİ DOZ';
   return `
-    <div class="alarm-section-title alarm-section-title-focus">${title}</div>
+    <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" aria-pressed="${focusPhotoSize()==='large'}" onclick="setFocusPhotoSize('large')">Büyük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" aria-pressed="${focusPhotoSize()==='small'}" onclick="setFocusPhotoSize('small')">Küçük resim</button></div></div>
     ${alarmHTML(item, 'focus')}
   `;
 }
@@ -249,7 +255,7 @@ function renderList(pending, done) {
 function alarmHTML(i, variant='list') {
   const classes = [
     'alarm-item',
-    variant === 'focus' ? 'focus' : 'compact',
+    variant === 'focus' ? 'focus photo-' + focusPhotoSize() : 'compact',
     i.done ? 'done' : 'pending',
     i.isTaking ? 'taking' : '',
     i.isNow ? 'now' : '',
