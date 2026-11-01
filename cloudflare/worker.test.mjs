@@ -102,3 +102,11 @@ test('registration refuses malformed invitation without touching database', asyn
   const { env } = environment();
   assert.equal((await call(env, null, 'POST', '/api/devices', { invite: 'wrong' }, { 'content-type': 'application/json' })).status, 400);
 });
+
+test('push subscription rejects unauthenticated and invalid requests', async () => {
+  const { env, token } = environment();
+  const valid = { endpoint: 'https://push.example.test/send/abc', keys: { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) } };
+  assert.equal((await call(env, null, 'POST', '/api/push-subscriptions', valid, { 'content-type': 'application/json' })).status, 401);
+  assert.equal((await call(env, token, 'POST', '/api/push-subscriptions', { ...valid, endpoint: 'http://push.example.test/send' }, { 'content-type': 'application/json' })).status, 400);
+  assert.equal((await call(env, token, 'POST', '/api/push-subscriptions', { ...valid, keys: { p256dh: 'bad', auth: 'bad' } }, { 'content-type': 'application/json' })).status, 400);
+});
