@@ -224,7 +224,7 @@ function renderToday() {
 
 function renderFocusCard(item) {
   if (!item) return '';
-  const title = item.overdue ? 'Acil Alman Gereken' : 'Şimdi Alman Gereken';
+  const title = item.overdue ? 'GECİKEN DOZ' : 'SIRADAKİ DOZ';
   return `
     <div class="alarm-section-title alarm-section-title-focus">${title}</div>
     ${alarmHTML(item, 'focus')}
@@ -234,13 +234,13 @@ function renderFocusCard(item) {
 function renderList(pending, done) {
   let html = '';
   if (pending.length) {
-    html += `<div class="alarm-section-title">Diğerleri (${pending.length})</div>`;
+    html += `<div class="alarm-section-title">SONRAKİ DOZLAR <span class="mono-count">${pending.length}</span></div>`;
     html += pending.map(i => alarmHTML(i, 'list')).join('');
   } else {
-    html += `<div class="alarm-section-title">Diğerleri</div><div class="empty-list-note">Başka bekleyen ilaç yok.</div>`;
+    html += `<div class="alarm-section-title">SONRAKİ DOZLAR</div><div class="empty-list-note">Başka bekleyen doz yok.</div>`;
   }
   if (done.length) {
-    html += `<div class="alarm-section-title">Tamamlandı (${done.length})</div>`;
+    html += `<div class="alarm-section-title">TAMAMLANANLAR <span class="mono-count">${done.length}</span></div>`;
     html += done.map(i => alarmHTML(i, 'list')).join('');
   }
   return html;
@@ -257,7 +257,7 @@ function alarmHTML(i, variant='list') {
   ].filter(Boolean).join(' ');
   const topTags = !i.done ? `
     <div class="alarm-item-top-tags">
-      ${i.isNow ? '<span class="alarm-flag alarm-flag-now">ŞİMDİ AL</span>' : ''}
+      ${i.isNow ? '<span class="alarm-flag alarm-flag-now">SIRADAKİ</span>' : ''}
       ${i.overdue ? '<span class="alarm-flag alarm-flag-overdue">GECİKTİ</span>' : ''}
     </div>
   ` : '';
