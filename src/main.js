@@ -258,13 +258,13 @@ function alarmHTML(i, variant='list') {
   const topTags = !i.done ? `
     <div class="alarm-item-top-tags">
       ${i.isNow ? '<span class="alarm-flag alarm-flag-now">ŞİMDİ AL</span>' : ''}
-      ${i.overdue ? '<span class="alarm-flag alarm-flag-overdue">GECİKTİ</span>' : ''}
+
     </div>
   ` : '';
   const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
   const overdueInfo = (!i.done && i.overdue)
-    ? `<div class="alarm-overdue-text">${formatDelayText(i.diff)}</div>`
-    : '';
+    ? `<div class="alarm-overdue-text" role="status">GECİKTİ · ${formatDelayText(i.diff)}</div>`
+    : (!i.done ? '<div class="alarm-waiting-text" role="status">BEKLİYOR</div>' : '');
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = usageCondition === 'tok'
     ? '🍽 TOK'
