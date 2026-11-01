@@ -720,3 +720,10 @@ body.settings-open{overflow:hidden}
 .alarm-overdue-text{color:#8d2424;background:#f8e8e8;animation:overdue-breathe 2.8s ease-in-out infinite}
 @keyframes overdue-breathe{0%,100%{background:#f8e8e8;color:#8d2424}50%{background:#eed1d1;color:#6d1515}}
 @media(prefers-reduced-motion:reduce){.alarm-overdue-text{animation:none}}
+
+/* Status is plain text, never a button or chip. */
+.alarm-support .alarm-overdue-text,.alarm-support .alarm-waiting-text{width:auto;padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none;cursor:default;pointer-events:none;font-size:16px!important;font-weight:850;line-height:1.5;text-align:center}
+.alarm-support .alarm-waiting-text{color:#202020}
+.alarm-support .alarm-overdue-text{color:#8d2424;animation:overdue-text-breathe 2.8s ease-in-out infinite}
+@keyframes overdue-text-breathe{0%,100%{opacity:1}50%{opacity:.55}}
+@media(prefers-reduced-motion:reduce){.alarm-support .alarm-overdue-text{animation:none}}
