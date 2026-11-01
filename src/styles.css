@@ -643,3 +643,16 @@ html, body, #app { background: var(--bg); }
 #page-bugun .alarm-item.focus.photo-small .alarm-photo-placeholder {
   width:76px; height:76px; border-radius:16px; font-size:32px;
 }
+
+
+/* Dose status: subdued semantic color, never color alone. */
+#page-bugun .alarm-item.dose-upcoming .alarm-time { color:#235b9c; }
+#page-bugun .alarm-item.dose-overdue .alarm-time { color:#b8333d; }
+#page-bugun .alarm-item.dose-taken .alarm-time { color:#20754c; }
+#page-bugun .alarm-item.dose-taken .alarm-done-overlay { color:#20754c; }
+#page-bugun .alarm-item.dose-overdue .alarm-overdue-text { color:#b8333d; background:#fceced; }
+#page-bugun .alarm-item.focus.dose-upcoming .alarm-time { color:#235b9c; }
+#page-bugun .alarm-item.focus.dose-overdue .alarm-time { color:#b8333d; }
+#page-bugun .alarm-item.focus.dose-taken .alarm-time { color:#20754c; }
+.dose-time-detail { text-align:center; color:#69716d; font-size:12px; font-weight:700; }
+#page-bugun .alarm-item { cursor:default; }
