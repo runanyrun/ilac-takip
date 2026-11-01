@@ -780,5 +780,60 @@ function importData() {
   input.click();
 }
 
+const CLOUD_API = 'https://ilac-takip-api.runanyrun.workers.dev';
+const CLOUD_CREDENTIAL_KEY = 'ilac_test_device_token_v1';
+
+function openCloudSetup() {
+  const modal = document.getElementById('cloud-modal');
+  document.getElementById('cloud-invite').value = '';
+  document.getElementById('cloud-status').textContent =
+    localStorage.getItem(CLOUD_CREDENTIAL_KEY)
+      ? 'Bu tarayıcıda test cihazı anahtarı bulunuyor. Yeniden eşleştirmek mevcut anahtarı değiştirebilir.'
+      : 'Henüz eşleştirilmedi. Mevcut ilaç kayıtlarınız yalnızca bu cihazda kalır.';
+  modal.classList.add('show');
+}
+
+function closeCloudSetup() {
+  document.getElementById('cloud-invite').value = '';
+  document.getElementById('cloud-modal').classList.remove('show');
+}
+
+async function connectCloudDevice() {
+  const input = document.getElementById('cloud-invite');
+  const status = document.getElementById('cloud-status');
+  const button = document.getElementById('cloud-connect-btn');
+  const invite = input.value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(invite)) {
+    status.textContent = 'Davet kodu 64 karakterlik onaltılık değer olmalı.';
+    return;
+  }
+  if (localStorage.getItem(CLOUD_CREDENTIAL_KEY) &&
+      !confirm('Mevcut test cihazı bağlantısı değiştirilecek. Devam edilsin mi?')) return;
+  button.disabled = true;
+  status.textContent = 'Eşleştirme deneniyor…';
+  try {
+    const response = await fetch(CLOUD_API + '/api/devices', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ invite }),
+      cache: 'no-store'
+    });
+    const result = await response.json();
+    if (!response.ok || !/^[a-f0-9]{64}$/.test(result.token || '')) {
+      status.textContent = response.status === 403
+        ? 'Kod geçersiz veya daha önce kullanılmış.'
+        : 'Eşleştirme başarısız (' + response.status + ').';
+      return;
+    }
+    localStorage.setItem(CLOUD_CREDENTIAL_KEY, result.token);
+    input.value = '';
+    status.textContent = 'Test cihazı eşleştirildi. Bulut yedekleme ve bildirimler henüz etkin değil.';
+  } catch {
+    status.textContent = 'Sunucuya bağlanılamadı. İnternet bağlantısını kontrol edin.';
+  } finally {
+    button.disabled = false;
+  }
+}
+
 document.getElementById('add-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('detail-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
