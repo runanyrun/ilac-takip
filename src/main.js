@@ -330,10 +330,10 @@ function alarmHTML(i, variant='list') {
     ${i.drug.purpose && expandedDrugNotes.has(String(i.drug.id)) ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.purpose)}</div>` : ''}
     <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
     ${i.skipped ? `<div class="dose-time-detail">Atlandı · Planlanan ${i.time}</div>` : i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
+    ${overdueInfo}
     <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><span class="alarm-dose-tag">${i.drug.daily} ADET</span></div>
     ${i.drug.usageNote ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.usageNote)}</div>` : ""}
     <div class="alarm-support">
-      ${overdueInfo}
       <div class="alarm-dose">${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
       ${stockInfo}
     </div>
