@@ -575,7 +575,7 @@ async function setupFirebaseMessaging() {
 
     if (token) {
       localStorage.setItem(LS_FCM_TOKEN, token);
-      console.log('FCM token:', token);
+      console.info('FCM token alındı.');
     } else {
       console.warn('FCM token alınamadı.');
     }
@@ -651,54 +651,36 @@ function buildAlarmPlan() {
 }
 
 async function postPushJSON(path, payload) {
-  if (!PUSH_SERVER_BASE_URL) return;
-  const res = await fetch(`${PUSH_SERVER_BASE_URL}${path}`, {
+  const token = localStorage.getItem(CLOUD_CREDENTIAL_KEY);
+  if (!token || !/^[a-f0-9]{64}$/.test(token)) throw new Error('Cihaz eşleştirilmemiş');
+  const res = await fetch(CLOUD_API + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
     body: JSON.stringify(payload),
+    cache: 'no-store'
   });
-  if (!res.ok) throw new Error(`Push API hata: ${res.status}`);
+  if (!res.ok) throw new Error('Push API hata: ' + res.status);
+  return res.json();
 }
 
 async function setupWebPush() {
-  if (!isWebPushCapable()) return;
-  if (!isStandalonePwa()) return;
-  if (!PUSH_PUBLIC_KEY || !PUSH_SERVER_BASE_URL) {
-    console.warn('PUSH_PUBLIC_KEY veya PUSH_SERVER_BASE_URL ayarlı değil.');
-    return;
-  }
+  if (!isWebPushCapable() || !isStandalonePwa()) return;
+  if (!PUSH_PUBLIC_KEY || !localStorage.getItem(CLOUD_CREDENTIAL_KEY)) return;
   const reg = await navigator.serviceWorker.ready;
   let subscription = await reg.pushManager.getSubscription();
   if (!subscription) {
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(PUSH_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(PUSH_PUBLIC_KEY)
     });
   }
-  await postPushJSON('/api/push/subscriptions', {
-    subscription,
-    userAgent: navigator.userAgent,
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Istanbul',
-    standalone: isStandalonePwa(),
-  });
-  await syncPushSchedule();
+  await postPushJSON('/api/push-subscriptions', subscription.toJSON());
 }
 
+// Scheduling requires a separate authenticated backend endpoint and is deliberately
+// disabled until the server can safely persist and dispatch the alarm plan.
 async function syncPushSchedule() {
-  if (!PUSH_SERVER_BASE_URL) return;
-  if (!isWebPushCapable() || Notification.permission !== 'granted') return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    const subscription = await reg.pushManager.getSubscription();
-    if (!subscription) return;
-    await postPushJSON('/api/push/schedules', {
-      endpoint: subscription.endpoint,
-      alarms: buildAlarmPlan(),
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.warn('Push schedule sync hatası:', err);
-  }
+  return;
 }
 
 // ── UTILS ──
