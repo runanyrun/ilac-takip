@@ -514,9 +514,216 @@ select.form-input { appearance: none; background-image: url("data:image/svg+xml,
 @keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 .drug-card { animation: slideUp 0.3s ease both; }
 
-/* Plain text dose statuses, matching typography; only overdue gently pulses. */
-.alarm-support .alarm-overdue-text,.alarm-support .alarm-waiting-text{display:block;width:auto;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;cursor:default;pointer-events:none;font-size:16px;font-weight:850;line-height:1.5;letter-spacing:.3px;text-align:center;text-transform:uppercase}
+
+/* MONO / FOCUS — minimalist visual layer. Existing workflows and records stay intact. */
+:root {
+  --primary: #17191b; --primary-light: #25272a; --accent: #17191b;
+  --bg: #f4f4f2; --surface: #fff; --surface2: #f8f8f6;
+  --text: #18191b; --muted: #77797b; --border: #e5e5e2;
+  --green: #3b3e3d; --red: #525252; --yellow: #686868;
+  --radius: 22px; --shadow: none;
+}
+html, body, #app { background: var(--bg); }
+.header { background: var(--bg); color: var(--text); padding: calc(30px + env(safe-area-inset-top, 0px)) 22px 16px; }
+.header h1 { font-size: 21px; font-weight: 900; letter-spacing: -1px; }
+.header p { font-size: 12px; color: var(--muted); opacity: 1; letter-spacing: .04em; }
+.header-actions { gap: 3px; }
+.icon-btn { background: transparent; color: var(--text); border: 1px solid transparent; border-radius: 50%; width: 36px; height: 36px; font-size: 17px; }
+.icon-btn:active { background: #e7e7e4; }
+.today-bar { background: transparent; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); border-radius: 0; margin: 0 22px; padding: 13px 0; gap: 4px; }
+.today-stat .num { color: var(--text); font-size: 18px; font-weight: 900; }
+.today-stat .lbl { color: var(--muted); font-size: 9px; letter-spacing: 1.5px; }
+.tabs { background: transparent; border-bottom: 1px solid var(--border); padding: 0 12px; }
+.tab { font-size: 12px; letter-spacing: .08em; padding: 15px 6px; font-weight: 800; }
+.tab.active { color: var(--text); }
+.tab.active::after { background: var(--text); height: 2px; left: 30%; right: 30%; }
+.content { padding: 22px 20px calc(120px + env(safe-area-inset-bottom, 0px)); }
+.alarm-section-title { font-size: 10px; font-weight: 900; letter-spacing: 2.2px; color: var(--muted); margin: 29px 3px 14px; }
+.alarm-section-title-focus { font-size: 11px; color: var(--text); margin: 4px 3px 14px; }
+.mono-count { font-weight: 600; letter-spacing: 0; }
+#page-bugun .alarm-item.focus {
+  border: 1px solid #dededb; border-radius: 30px; background: #fff;
+  box-shadow: 0 14px 44px rgba(0,0,0,.035);
+  padding: 26px 24px; min-height: 330px;
+}
+#page-bugun .alarm-item.focus .alarm-name { font-size: clamp(30px, 9vw, 46px); line-height: 1.06; letter-spacing: -1.8px; font-weight: 900; color: var(--text); overflow-wrap: anywhere; }
+#page-bugun .alarm-item.focus .alarm-time { font-size: clamp(44px, 15vw, 70px); line-height: 1; letter-spacing: -3px; font-weight: 900; color: var(--text); }
+#page-bugun .alarm-item.focus .alarm-action { background: var(--text); color: white; border-radius: 16px; font-size: 15px; letter-spacing: 1.3px; font-weight: 900; min-height: 56px; }
+#page-bugun .alarm-item.focus .alarm-flag { background: #f1f1ef; color: #3a3b3d; border: 1px solid #e6e6e3; letter-spacing: 1.4px; }
+#page-bugun .alarm-item.focus .alarm-photo-placeholder { background: #f3f3f1; }
+#page-bugun .alarm-item.compact { border: 1px solid var(--border); border-radius: 18px; box-shadow: none; background: rgba(255,255,255,.75); }
+.drug-card, .history-item { box-shadow: none; border: 1px solid var(--border); }
+.pill-blue, .pill-orange, .pill-green, .pill-gray, .pill-usage, .pill-usage.ac, .pill-usage.tok { background: #efefed; color: #4b4d4e; }
+.alarm-usage-badge, .alarm-usage-badge.ac, .alarm-usage-badge.tok { background: #f0f0ee; color: #3c3e3e; }
+.fab, .btn-primary { background: var(--text); color: #fff; box-shadow: none; }
+.empty-list-note { font-size: 13px; font-weight: 600; }
+@media (max-width: 370px) { .header { padding-left: 14px; padding-right: 14px; } .header-actions { gap: 0; } .icon-btn { width: 32px; } }
+
+
+/* MONO refinements: make the current dose dominant, later doses truly secondary. */
+#page-bugun .alarm-item.focus,
+#page-bugun .alarm-item.focus.now,
+#page-bugun .alarm-item.focus.overdue,
+#page-bugun .alarm-item.focus.taking {
+  background: #fff; border: 1px solid #dededb;
+  box-shadow: 0 14px 44px rgba(0,0,0,.035);
+  gap: 14px; transform: none;
+}
+#page-bugun .alarm-item.focus .alarm-image-wrap { margin: 0; }
+#page-bugun .alarm-item.focus .alarm-photo,
+#page-bugun .alarm-item.focus .alarm-photo-placeholder {
+  width: 96px; height: 96px; border: 1px solid #e7e7e5;
+  box-shadow: none; border-radius: 20px; font-size: 42px;
+}
+#page-bugun .alarm-item.focus .alarm-time {
+  font-size: clamp(44px, 15vw, 70px); color: #17191b;
+  font-variant-numeric: tabular-nums;
+}
+#page-bugun .alarm-item.focus .alarm-name {
+  font-size: clamp(30px, 9vw, 46px); color: #17191b;
+  display: block; overflow: visible; -webkit-line-clamp: unset;
+}
+#page-bugun .alarm-item.focus .alarm-dose { color: #626466; font-size: 14px; }
+#page-bugun .alarm-item.focus .alarm-usage-badge { min-height: 42px; font-size: 14px; border-radius: 12px; }
+#page-bugun .alarm-item.focus .alarm-flag { font-size: 11px; padding: 7px 11px; }
+#page-bugun .alarm-item.focus .alarm-overdue-text {
+  background: #ededeb; color: #292b2d; font-size: 13px; padding: 8px;
+}
+#page-bugun .alarm-item.focus .alarm-action,
+#page-bugun .alarm-item.focus.taking .alarm-action {
+  background: #17191b; color: white; box-shadow: none; border: none;
+  font-size: 16px; min-height: 58px;
+}
+#page-bugun .alarm-item.compact,
+#page-bugun .alarm-item.compact.pending.now,
+#page-bugun .alarm-item.compact.overdue,
+#page-bugun .alarm-item.compact.done {
+  background: rgba(255,255,255,.78); border: 1px solid #e4e4e1;
+  box-shadow: none; padding: 16px; gap: 9px;
+}
+#page-bugun .alarm-item.compact .alarm-image-wrap { display: none; }
+#page-bugun .alarm-item.compact .alarm-name { color: #202123; font-size: 19px; letter-spacing: -.5px; }
+#page-bugun .alarm-item.compact .alarm-time { color: #292b2c; font-size: 26px; font-variant-numeric: tabular-nums; }
+#page-bugun .alarm-item.compact .alarm-dose { color: #777; font-size: 12px; }
+#page-bugun .alarm-item.compact .alarm-usage-badge { min-height: 36px; font-size: 12px; padding: 6px; }
+#page-bugun .alarm-item.compact .alarm-flag { font-size: 10px; padding: 5px 8px; }
+#page-bugun .alarm-item.compact .alarm-action { background: #eee; color: #17191b; border: 1px solid #ddd; box-shadow: none; min-height: 44px; font-size: 13px; }
+#page-bugun .alarm-item.done .alarm-done-overlay { background: #e9e9e7; color: #363738; box-shadow: none; font-size: 12px; }
+#page-bugun .alarm-item.compact .alarm-stock-warning { font-size: 12px; }
+#page-bugun .alarm-item:focus-within { outline: 2px solid #888; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .alarm-item, .alarm-action, .drug-card { animation: none !important; transition: none !important; }
+}
+
+/* Only explicit action buttons record a dose. Cards are informational. */
+#page-bugun .alarm-item { cursor: default; }
+#page-bugun .alarm-item:active { transform: none; }
+#page-bugun .alarm-action { cursor: pointer; touch-action: manipulation; }
+#page-bugun .alarm-action:focus-visible { outline: 3px solid #575a5c; outline-offset: 3px; }
+#page-bugun .alarm-item.focus .alarm-usage-badge.ac,
+#page-bugun .alarm-item.focus .alarm-usage-badge.tok,
+#page-bugun .alarm-item.compact .alarm-usage-badge.ac,
+#page-bugun .alarm-item.compact .alarm-usage-badge.tok {
+  background: #efefed; color: #353638; font-weight: 800; letter-spacing: .08em;
+}
+
+/* User-controlled focus image: large for visual identification, small for discretion. */
+.focus-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.focus-heading .alarm-section-title-focus { margin:4px 0; }
+.photo-size-control { display:flex; padding:3px; background:#e9e9e7; border-radius:12px; gap:3px; }
+.photo-size-option { border:0; background:transparent; color:#5c5d5f; border-radius:9px; padding:9px 10px; font:750 11px/1.2 system-ui,sans-serif; cursor:pointer; }
+.photo-size-option.selected { background:#fff; color:#191a1b; box-shadow:0 1px 3px #00000010; }
+.photo-size-option:focus-visible { outline:2px solid #191a1b; outline-offset:2px; }
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width:min(66vw,240px); height:min(66vw,240px); max-width:100%;
+  border-radius:26px; object-fit:contain; background:#f6f6f4; font-size:72px;
+}
+#page-bugun .alarm-item.focus.photo-small .alarm-photo,
+#page-bugun .alarm-item.focus.photo-small .alarm-photo-placeholder {
+  width:76px; height:76px; border-radius:16px; font-size:32px;
+}
+
+
+/* Dose status: subdued semantic color, never color alone. */
+#page-bugun .alarm-item.dose-upcoming .alarm-time { color:#235b9c; }
+#page-bugun .alarm-item.dose-overdue .alarm-time { color:#b8333d; }
+#page-bugun .alarm-item.dose-taken .alarm-time { color:#20754c; }
+#page-bugun .alarm-item.dose-taken .alarm-done-overlay { color:#20754c; }
+#page-bugun .alarm-item.dose-overdue .alarm-overdue-text { color:#b8333d; background:#fceced; }
+#page-bugun .alarm-item.focus.dose-upcoming .alarm-time { color:#235b9c; }
+#page-bugun .alarm-item.focus.dose-overdue .alarm-time { color:#b8333d; }
+#page-bugun .alarm-item.focus.dose-taken .alarm-time { color:#20754c; }
+.dose-time-detail { text-align:center; color:#69716d; font-size:12px; font-weight:700; }
+#page-bugun .alarm-item { cursor:default; }
+
+/* Keep focus on the medicine, not dashboard counters. */
+.today-bar { display:none !important; }
+#page-bugun .alarm-stock-warning { font-size:13px; line-height:1.4; border-radius:12px; padding:11px; }
+#page-bugun .alarm-stock-warning.stock-low { background:#f4f0e8; color:#735620; }
+#page-bugun .alarm-stock-warning.stock-empty { background:#f9e8e9; color:#9d303a; }
+
+#page-bugun .alarm-item.dose-skipped .alarm-time {color:#777;}
+#page-bugun .alarm-item.dose-skipped .alarm-done-overlay {color:#666;}
+#page-bugun .alarm-item.focus.photo-hidden .alarm-image-wrap {display:none;}
+#page-bugun .alarm-skip-action {width:100%;margin-top:9px;padding:12px;border:1px solid #d8d8d6;background:transparent;border-radius:12px;color:#555;font-size:13px;font-weight:700;cursor:pointer;}
+#page-bugun .alarm-skip-action:focus-visible {outline:3px solid #555;outline-offset:2px;}
+
+/* Photo-first focus card: use the whole frame, never crop packaging. */
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width:min(74vw,270px);height:min(74vw,270px);max-width:100%;object-fit:contain;
+  background:#f4f4f2;border:0;box-shadow:none;border-radius:22px;
+}
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {font-size:clamp(78px,20vw,106px);}
+#page-bugun .alarm-item.focus .alarm-image-wrap {margin:0 0 9px;}
+#page-bugun .alarm-item.focus .alarm-item-top-tags {display:none;}
+#page-bugun .alarm-item.focus .alarm-support {gap:5px;}
+#page-bugun .alarm-item.focus .alarm-stock-warning {padding:8px 10px;}
+@media(max-height:720px) and (max-width:600px){
+ #page-bugun .alarm-item.focus.photo-large .alarm-photo,
+ #page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {width:min(64vw,220px);height:min(64vw,220px);}
+}
+
+/* Compact, readable usage and dose pills; save vertical space for the photo and action. */
+#page-bugun .alarm-item.focus .alarm-dose-tags{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:7px;margin:10px 0 5px}
+#page-bugun .alarm-item.focus .alarm-usage-badge,
+#page-bugun .alarm-item.focus .alarm-dose-tag{display:inline-flex;align-items:center;justify-content:center;width:auto;min-width:0;min-height:0;margin:0;padding:8px 13px;border-radius:999px;background:#f0f0ee;color:#333;font:750 12px/1.2 system-ui,sans-serif;letter-spacing:.5px}
+#page-bugun .alarm-item.focus .alarm-dose{font-size:12px;color:#777;font-weight:500}
+#page-bugun .alarm-item.compact .alarm-dose-tags{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
+#page-bugun .alarm-item.compact .alarm-dose-tag{font-size:12px;color:#666}
+
+
+.alarm-name-toggle{border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;cursor:pointer;padding:4px 8px;border-radius:10px}.alarm-name-toggle:focus-visible{outline:3px solid #333}.alarm-purpose-note{margin:7px auto 9px;max-width:90%;padding:10px 13px;border-radius:12px;background:#f2f2f0;color:#333;font-size:14px;line-height:1.5;text-align:center;overflow-wrap:anywhere}
+
+.photo-settings-trigger{border:1px solid #dedede;border-radius:10px;background:#fff;color:#333;padding:8px 12px;font:inherit;font-size:12px;cursor:pointer}.photo-settings-panel{padding:12px;margin:8px 0 14px;border:1px solid #e4e4e4;border-radius:14px;background:#fafafa;font-size:13px}.photo-settings-panel[hidden]{display:none}.photo-settings-panel .photo-size-control{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+
+.menu-icon-trigger{border:0;background:transparent;color:inherit;font-size:27px;line-height:1;cursor:pointer;padding:8px 10px;min-width:44px;min-height:44px}.menu-icon-trigger:focus-visible{outline:3px solid currentColor;border-radius:8px}.main-settings-panel{margin:0 auto 10px;padding:18px;max-width:470px;border:1px solid #e3e3e3;border-radius:14px;background:#fff}.main-settings-panel[hidden]{display:none}.settings-panel-heading{font-size:12px;font-weight:900;letter-spacing:1px;margin-bottom:12px}.settings-panel-label{font-size:14px;margin-bottom:10px}.main-settings-panel .photo-size-control{display:flex;gap:8px;flex-wrap:wrap}
+
+.settings-extra-heading{margin-top:22px}.settings-action-list{display:grid;gap:8px}.settings-action-list button{min-height:46px;text-align:left;padding:10px 12px;border:1px solid #e5e5e5;border-radius:11px;background:#fafafa;color:#222;font:inherit;font-size:14px;cursor:pointer}.settings-action-list button:focus-visible{outline:3px solid #555}
+
+/* Monochrome, no emoji-style settings icons */
+.menu-lines{display:flex;flex-direction:column;gap:5px;width:21px}.menu-lines i{display:block;width:21px;height:2px;background:currentColor;border-radius:1px}.settings-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.28);z-index:110}.settings-backdrop[hidden]{display:none}.main-settings-panel{position:fixed;right:0;top:0;bottom:0;width:min(390px,92vw);max-width:none;margin:0;border:0;border-left:1px solid #ddd;border-radius:0;padding:24px 22px;overflow-y:auto;z-index:111;box-shadow:-12px 0 30px rgba(0,0,0,.07);background:#fff}.settings-drawer-top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e6e6e6;padding-bottom:16px;margin-bottom:22px}.settings-drawer-top .settings-panel-heading{margin:0;letter-spacing:1.6px}.settings-close{border:0;background:transparent;font:inherit;font-size:30px;line-height:1;cursor:pointer;min-width:44px;min-height:44px}.settings-action-list button{background:#fff;border-radius:9px;font-weight:650}.menu-icon-trigger{display:grid;place-items:center}
+
+.settings-mobile-back{display:none}@media(max-width:600px){.settings-backdrop{display:none!important}.main-settings-panel{position:fixed;inset:0;width:100%;max-width:none;box-sizing:border-box;border:0;box-shadow:none;padding:env(safe-area-inset-top,0px) 22px env(safe-area-inset-bottom,0px);border-radius:0;background:#f7f7f5;z-index:300}.settings-drawer-top{min-height:72px;justify-content:flex-start;gap:14px;margin-bottom:24px}.settings-mobile-back{display:grid;place-items:center;border:0;background:transparent;font-size:29px;min-width:48px;min-height:48px;cursor:pointer}.settings-close{display:none}.settings-drawer-top .settings-panel-heading{font-size:16px;letter-spacing:.8px}.settings-panel-label{font-size:16px}.main-settings-panel .photo-size-option{min-height:46px;padding:10px 15px}.settings-action-list button{min-height:56px;font-size:16px;padding:14px 16px}.settings-extra-heading{margin-top:30px}}
+body.settings-open{overflow:hidden}
+
+/* Minimal mobile medicine editor */
+#add-modal .modal{background:#fff}#add-modal .form-label{font-size:14px;font-weight:800;color:#242424}#add-modal .form-hint{font-size:12px;color:#777;line-height:1.5}#add-modal .form-input{border:1px solid #d9d9d9;border-radius:11px;background:#fff;color:#151515}#add-modal .form-input:focus{outline:2px solid #222;outline-offset:1px}#add-modal .usage-condition-group{gap:8px}#add-modal .usage-condition-option{min-height:44px;display:inline-flex;align-items:center;gap:6px}#add-modal .btn-primary:not(.btn-danger){background:#181818;color:white;border-radius:12px;min-height:54px;font-weight:850}#add-modal .photo-upload{border:1px dashed #aaa;border-radius:14px;background:#f7f7f6}#add-modal #photo-placeholder .icon{display:none}
+@media(max-width:600px){#add-modal{align-items:stretch;justify-content:stretch;padding:0}#add-modal .modal{box-sizing:border-box;position:relative;inset:auto;width:100%;max-width:none;height:100dvh;max-height:100dvh;overflow-y:auto;overscroll-behavior:contain;border-radius:0;padding:24px 20px max(32px,env(safe-area-inset-bottom));box-shadow:none}#add-modal .modal-handle{display:none}#add-modal .modal-title{font-size:24px;letter-spacing:-.5px;margin:4px 0 24px}#add-modal .form-row{display:grid;grid-template-columns:1fr;gap:0}#add-modal .form-input{min-height:48px;font-size:16px}#add-modal textarea.form-input{min-height:80px}#add-modal .form-group{margin-bottom:19px}#add-modal .photo-upload{min-height:120px}#add-modal .stock-counter button{min-width:44px;min-height:48px}#add-modal .stock-counter .val{font-size:22px}}
+
+.medicine-editor-header{display:flex;align-items:center;gap:12px}.medicine-editor-back{border:0;background:transparent;color:#191919;font-size:29px;min-width:48px;min-height:48px;cursor:pointer;display:none}.medicine-editor-back:focus-visible{outline:3px solid #222;border-radius:8px}@media(max-width:600px){.medicine-editor-back{display:block}#add-modal .medicine-editor-header{margin:0 0 22px;border-bottom:1px solid #e8e8e8;padding-bottom:12px}#add-modal .medicine-editor-header .modal-title{margin:0;font-size:22px}#add-modal .modal{padding-top:max(12px,env(safe-area-inset-top))}}
+
+/* Unified readable dose status; gentle emphasis only for overdue */
+.alarm-overdue-text,.alarm-waiting-text{display:block;box-sizing:border-box;width:100%;padding:10px 12px;border-radius:10px;font-size:16px!important;font-weight:850;line-height:1.45;letter-spacing:.3px;text-align:center;text-transform:uppercase}
+.alarm-waiting-text{color:#202020;background:#f0f0ee}
+.alarm-overdue-text{color:#8d2424;background:#f8e8e8;animation:overdue-breathe 2.8s ease-in-out infinite}
+@keyframes overdue-breathe{0%,100%{background:#f8e8e8;color:#8d2424}50%{background:#eed1d1;color:#6d1515}}
+@media(prefers-reduced-motion:reduce){.alarm-overdue-text{animation:none}}
+
+/* Status is plain text, never a button or chip. */
+.alarm-support .alarm-overdue-text,.alarm-support .alarm-waiting-text{width:auto;padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none;cursor:default;pointer-events:none;font-size:16px!important;font-weight:850;line-height:1.5;text-align:center}
 .alarm-support .alarm-waiting-text{color:#202020}
-.alarm-support .alarm-overdue-text{color:#8d2424;animation:dose-overdue-pulse 2.8s ease-in-out infinite}
-@keyframes dose-overdue-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.alarm-support .alarm-overdue-text{color:#8d2424;animation:overdue-text-breathe 2.8s ease-in-out infinite}
+@keyframes overdue-text-breathe{0%,100%{opacity:1}50%{opacity:.55}}
 @media(prefers-reduced-motion:reduce){.alarm-support .alarm-overdue-text{animation:none}}
