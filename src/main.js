@@ -4,9 +4,9 @@ const LS_LOG     = 'ilac_log_v2';
 const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
-function focusPhotoSize() { return localStorage.getItem(LS_PHOTO_SIZE) === 'small' ? 'small' : 'large'; }
+function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; }
 function setFocusPhotoSize(size) {
-  localStorage.setItem(LS_PHOTO_SIZE, size === 'small' ? 'small' : 'large');
+  localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large');
   renderToday();
 }
 
@@ -197,13 +197,13 @@ function renderToday() {
       const [h,m] = t.split(':').map(Number);
       const mins = (h * 60) + m;
       const diff = mins - nowMins;
-      items.push({ drug:d, time:t, key, done: !!takenLog[key], isTaking: !!takingState[key], mins, diff });
+      items.push({ drug:d, time:t, key, done: !!takenLog[key] && takenLog[key] !== 'skipped', skipped: takenLog[key] === 'skipped', isTaking: !!takingState[key], mins, diff });
     });
   });
   items.sort((a,b) => a.mins - b.mins);
   if (!items.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">🎉</div><h3>Bugün alarm yok</h3></div>`; return; }
-  const pending = items.filter(i=>!i.done).map(i => ({ ...i, overdue: i.diff < 0 }));
-  const done = items.filter(i=>i.done);
+  const pending = items.filter(i=>!i.done && !i.skipped).map(i => ({ ...i, overdue: i.diff < 0 }));
+  const done = items.filter(i=>i.done || i.skipped);
 
   const overduePending = pending
     .filter(i => i.overdue)
@@ -232,7 +232,7 @@ function renderFocusCard(item) {
   if (!item) return '';
   const title = item.overdue ? 'GECİKEN DOZ' : 'BEKLEYEN DOZ';
   return `
-    <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" aria-pressed="${focusPhotoSize()==='large'}" onclick="setFocusPhotoSize('large')">Büyük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" aria-pressed="${focusPhotoSize()==='small'}" onclick="setFocusPhotoSize('small')">Küçük resim</button></div></div>
+    <div class="focus-heading"><div class="alarm-section-title alarm-section-title-focus">${title}</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option ${focusPhotoSize()==='large'?'selected':''}" aria-pressed="${focusPhotoSize()==='large'}" onclick="setFocusPhotoSize('large')">Büyük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='small'?'selected':''}" aria-pressed="${focusPhotoSize()==='small'}" onclick="setFocusPhotoSize('small')">Küçük resim</button><button type="button" class="photo-size-option ${focusPhotoSize()==='hidden'?'selected':''}" aria-pressed="${focusPhotoSize()==='hidden'}" onclick="setFocusPhotoSize('hidden')">Gizle</button></div></div>
     ${alarmHTML(item, 'focus')}
   `;
 }
@@ -246,7 +246,7 @@ function renderList(pending, done) {
     html += `<div class="alarm-section-title">SONRAKİ DOZLAR</div><div class="empty-list-note">Başka bekleyen doz yok.</div>`;
   }
   if (done.length) {
-    html += `<div class="alarm-section-title">TAMAMLANANLAR <span class="mono-count">${done.length}</span></div>`;
+    html += `<div class="alarm-section-title">GÜNLÜK KAYITLAR <span class="mono-count">${done.length}</span></div>`;
     html += done.map(i => alarmHTML(i, 'list')).join('');
   }
   return html;
@@ -255,9 +255,9 @@ function renderList(pending, done) {
 function alarmHTML(i, variant='list') {
   const classes = [
     'alarm-item',
-    i.done ? 'dose-taken' : (i.overdue ? 'dose-overdue' : 'dose-upcoming'),
+    i.skipped ? 'dose-skipped' : (i.done ? 'dose-taken' : (i.overdue ? 'dose-overdue' : 'dose-upcoming')),
     variant === 'focus' ? 'focus photo-' + focusPhotoSize() : 'compact',
-    i.done ? 'done' : 'pending',
+    i.done || i.skipped ? 'done' : 'pending',
     i.isTaking ? 'taking' : '',
     i.isNow ? 'now' : '',
     (!i.done && i.overdue) ? 'overdue' : '',
@@ -268,7 +268,7 @@ function alarmHTML(i, variant='list') {
       ${i.overdue ? '<span class="alarm-flag alarm-flag-overdue">GECİKTİ</span>' : ''}
     </div>
   ` : '';
-  const doneOverlay = i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '';
+  const doneOverlay = i.skipped ? '<div class="alarm-done-overlay">ATLANDI</div>' : (i.done ? '<div class="alarm-done-overlay">✓ ALINDI</div>' : '');
   const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
   const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
@@ -285,7 +285,7 @@ function alarmHTML(i, variant='list') {
     ? '<div class="alarm-stock-warning stock-empty">Stok bitti · İlacını yenile</div>'
     : (daysLeft <= 3 ? `<div class="alarm-stock-warning stock-empty">İlacını yenile · Yaklaşık ${daysLeft} gün kaldı</div>` :
        daysLeft <= 7 ? `<div class="alarm-stock-warning stock-low">İlacın azalıyor · Yaklaşık ${daysLeft} gün kaldı</div>` : '');
-  return `<div class="${classes}">`
+  return `<div class="${classes}">
     ${topTags}
     ${doneOverlay}
     <div class="alarm-image-wrap">
@@ -293,7 +293,7 @@ function alarmHTML(i, variant='list') {
     </div>
     <div class="alarm-name">${i.drug.name}</div>
     <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
-    ${i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
+    ${i.skipped ? `<div class="dose-time-detail">Atlandı · Planlanan ${i.time}</div>` : i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
     <div class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</div>
     <div class="alarm-support">
       ${overdueInfo}
@@ -301,7 +301,8 @@ function alarmHTML(i, variant='list') {
       ${stockInfo}
     </div>
     <div class="alarm-action-wrap">
-      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="toggleTaken('${i.key}')">${i.done ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
+      <button class="alarm-action" ${i.isTaking ? 'disabled' : ''} onclick="toggleTaken('${i.key}')">${i.done || i.skipped ? 'GERİ AL' : (i.isTaking ? '✓ ALINDI' : 'ALDIM')}</button>
+      ${!i.done && !i.skipped ? `<button type="button" class="alarm-skip-action" onclick="skipDose('${i.key}')">ATLADIM</button>` : ''}
     </div>
   </div>`;
 }
@@ -311,9 +312,10 @@ function toggleTaken(key) {
   const id = parts[1];
   const d = drugs.find(x => x.id == id);
   if (takenLog[key]) {
-    if (!confirm('Bu dozu alınmadı olarak işaretlemek istiyor musunuz?')) return;
+    if (!confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
+    const wasTaken = takenLog[key] !== 'skipped';
     delete takenLog[key];
-    if (d) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
+    if (d && wasTaken) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
     saveDrugs(drugs); saveLog(takenLog);
     renderToday();
     renderDrugs();
@@ -337,10 +339,21 @@ function toggleTaken(key) {
   }, 650);
 }
 
+function skipDose(key) {
+  if (takenLog[key] || takingState[key]) return;
+  if (!confirm('Bu dozu atlandı olarak kaydetmek istiyor musunuz? İlaç alınmış sayılmayacak.')) return;
+  takenLog[key] = 'skipped';
+  const d = drugs.find(x => String(x.id) === key.split('_')[1]);
+  if (d) logHistory(d.id, 'Doz atlandı');
+  saveLog(takenLog);
+  renderToday();
+  syncPushSchedule();
+}
+
 function renderStats() {
   const today = todayStr();
   let total=0, done=0;
-  drugs.forEach(d => { if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`]) done++; }); });
+  drugs.forEach(d => { if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`] && takenLog[`${today}_${d.id}_${t}`] !== 'skipped') done++; }); });
   if (!document.getElementById('stat-total')) return;
   document.getElementById('stat-total').textContent = drugs.length;
   document.getElementById('stat-today').textContent = total;
