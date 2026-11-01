@@ -272,7 +272,7 @@ function alarmHTML(i, variant='list') {
   const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
   const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
-    ? `<div class="alarm-overdue-text">${formatDelayText(i.diff)}</div>`
+    ? `<div class="alarm-overdue-text">Gecikti · ${formatDelayText(i.diff)}</div>`
     : '';
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = usageCondition === 'tok'
