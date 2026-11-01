@@ -19,11 +19,11 @@ function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
 function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
 
 function normalizeUsageCondition(v) {
-  return (v === 'ac' || v === 'tok') ? v : 'tok';
+  return ['ac','tok','farketmez','ozel'].includes(v) ? v : 'belirtilmedi';
 }
 
 function usageConditionLabel(v) {
-  return ({ ac:'Aç', tok:'Tok' })[normalizeUsageCondition(v)];
+  return ({ ac:'Aç', tok:'Tok', farketmez:'Aç / tok fark etmez', ozel:'Özel talimat', belirtilmedi:'Belirtilmedi' })[normalizeUsageCondition(v)];
 }
 
 function formatDelayText(totalMins) {
@@ -49,6 +49,9 @@ let timeSlots = [];
 let alarmTimers = [];
 let pushReady = false;
 let takingState = {};
+const expandedDrugNotes = new Set();
+function toggleDrugNote(id) { const k=String(id); if(expandedDrugNotes.has(k)) expandedDrugNotes.delete(k); else expandedDrugNotes.add(k); renderToday(); }
+function safeDrugText(value) { return String(value||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
 
 const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
@@ -275,9 +278,7 @@ function alarmHTML(i, variant='list') {
     ? `<div class="alarm-overdue-text">Gecikti · ${formatDelayText(i.diff)}</div>`
     : '';
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
-  const usageDisplay = usageCondition === 'tok'
-    ? 'TOK KARNINA'
-    : 'AÇ KARNINA';
+  const usageDisplay = ({tok:'TOK KARNINA',ac:'AÇ KARNINA',farketmez:'AÇ / TOK FARK ETMEZ',ozel:'ÖZEL TALİMAT',belirtilmedi:'TALİMAT BELİRTİLMEDİ'})[usageCondition];
   const remaining = parseInt(i.drug.stock, 10) || 0;
   const dailyDose = Math.max(1, parseInt(i.drug.daily, 10) || 1);
   const daysLeft = Math.floor(remaining / dailyDose);
@@ -291,10 +292,12 @@ function alarmHTML(i, variant='list') {
     <div class="alarm-image-wrap">
       ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     </div>
-    <div class="alarm-name">${i.drug.name}</div>
+    <div class="alarm-name">${i.drug.purpose ? `<button type="button" class="alarm-name-toggle" aria-expanded="${expandedDrugNotes.has(String(i.drug.id))}" onclick="toggleDrugNote('${i.drug.id}')">${safeDrugText(i.drug.name)} ⌄</button>` : safeDrugText(i.drug.name)}</div>
+    ${i.drug.purpose && expandedDrugNotes.has(String(i.drug.id)) ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.purpose)}</div>` : ''}
     <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
     ${i.skipped ? `<div class="dose-time-detail">Atlandı · Planlanan ${i.time}</div>` : i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
     <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><span class="alarm-dose-tag">${i.drug.daily} ADET</span></div>
+    ${i.drug.usageNote ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.usageNote)}</div>` : ""}
     <div class="alarm-support">
       ${overdueInfo}
       <div class="alarm-dose">${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
@@ -391,6 +394,8 @@ function openAddModal(drugId=null) {
   if (drugId) {
     const d = drugs.find(x=>x.id==drugId);
     document.getElementById('drug-name').value     = d.name||'';
+    document.getElementById('drug-purpose').value = d.purpose||'';
+    document.getElementById('drug-usage-note').value = d.usageNote||'';
     document.getElementById('drug-doctor').value   = d.doctor||'';
     document.getElementById('drug-hospital').value = d.hospital||'';
     document.getElementById('drug-date').value     = d.date||'';
@@ -469,6 +474,8 @@ function saveDrug() {
   const drug = {
     id: editId || Date.now(),
     name, photo,
+    purpose: document.getElementById('drug-purpose').value.trim(),
+    usageNote: document.getElementById('drug-usage-note').value.trim(),
     doctor:   document.getElementById('drug-doctor').value.trim(),
     hospital: document.getElementById('drug-hospital').value.trim(),
     date:     document.getElementById('drug-date').value,
