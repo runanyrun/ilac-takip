@@ -13,7 +13,7 @@ export default {
     if (origin && origin !== ALLOWED_ORIGIN) return reply({ error: 'origin_not_allowed' }, 403);
     if (request.method === 'OPTIONS') {
       if (origin !== ALLOWED_ORIGIN) return reply({ error: 'origin_not_allowed' }, 403);
-      return new Response(null, { status: 204, headers: { 'access-control-allow-origin': ALLOWED_ORIGIN, 'access-control-allow-methods': 'GET, POST, OPTIONS', 'access-control-allow-headers': 'authorization, content-type', 'access-control-max-age': '600', 'vary': 'Origin' } });
+      return new Response(null, { status: 204, headers: { 'access-control-allow-origin': ALLOWED_ORIGIN, 'access-control-allow-methods': 'GET, POST, PUT, OPTIONS', 'access-control-allow-headers': 'authorization, content-type', 'access-control-max-age': '600', 'vary': 'Origin' } });
     }
     if (request.method === 'GET' && path === '/api/health') {
       try {
@@ -39,6 +39,43 @@ export default {
     const digest = await hash(authorization.slice(7));
     const owner = await env.DB.prepare('SELECT user_id FROM device_credentials WHERE token_hash = ?').bind(digest).first();
     if (!owner) return reply({ error: 'unauthorized' }, 401);
+    // Lossless opt-in backup storage. The server never modifies the backup's drug fields.
+    if (path === '/api/backup' && request.method === 'GET') {
+      const row = await env.DB.prepare('SELECT payload, revision, updated_at FROM user_backups WHERE user_id = ?').bind(owner.user_id).first();
+      if (!row) return reply({ error: 'backup_not_found' }, 404);
+      return reply({ backup: JSON.parse(row.payload), revision: row.revision, updatedAt: row.updated_at });
+    }
+    if (path === '/api/backup' && request.method === 'PUT') {
+      if (!(request.headers.get('content-type') || '').startsWith('application/json')) return reply({ error: 'json_required' }, 415);
+      const expected = request.headers.get('if-match');
+      if (expected !== '*' && !(typeof expected === 'string' && /^[a-f0-9]{64}$/.test(expected))) {
+        return reply({ error: 'revision_required' }, 428);
+      }
+      let payload;
+      try {
+        const raw = await request.text();
+        if (new TextEncoder().encode(raw).length > 262144) return reply({ error: 'too_large' }, 413);
+        payload = JSON.parse(raw);
+      } catch { return reply({ error: 'invalid_json' }, 400); }
+      if (!payload || payload.format !== 'ilac-takip-backup' || payload.version !== 2 ||
+          !Array.isArray(payload.drugs) || !Array.isArray(payload.history) ||
+          !payload.takenLog || typeof payload.takenLog !== 'object' || Array.isArray(payload.takenLog) ||
+          payload.drugs.length > 1000 || payload.history.length > 20000 ||
+          payload.drugs.some(d => !d || typeof d !== 'object' || typeof d.name !== 'string' || !d.name.trim())) {
+        return reply({ error: 'invalid_backup' }, 400);
+      }
+      const serialized = JSON.stringify(payload);
+      if (new TextEncoder().encode(serialized).length > 262144) return reply({ error: 'too_large' }, 413);
+      const revision = await hash(serialized);
+      const current = await env.DB.prepare('SELECT revision FROM user_backups WHERE user_id = ?').bind(owner.user_id).first();
+      if (current && current.revision === revision) return reply({ ok: true, revision, unchanged: true });
+      if ((current && expected !== current.revision) || (!current && expected !== '*')) return reply({ error: 'revision_conflict' }, 409);
+      const result = current
+        ? await env.DB.prepare('UPDATE user_backups SET payload = ?, revision = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revision = ?').bind(serialized, revision, owner.user_id, expected).run()
+        : await env.DB.prepare('INSERT OR IGNORE INTO user_backups (user_id, payload, revision) VALUES (?, ?, ?)').bind(owner.user_id, serialized, revision).run();
+      if (result.meta.changes !== 1) return reply({ error: 'revision_conflict' }, 409);
+      return reply({ ok: true, revision }, 200);
+    }
     if (request.method === 'GET' && path === '/api/medications') {
       const rows = await env.DB.prepare('SELECT m.id, m.name, m.dosage, m.usage_condition, m.active, s.local_time FROM medications m LEFT JOIN schedules s ON s.medication_id = m.id WHERE m.user_id = ? ORDER BY m.created_at, m.id, s.local_time').bind(owner.user_id).all();
       const medications = [];
