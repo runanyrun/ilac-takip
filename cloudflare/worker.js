@@ -38,9 +38,9 @@ export default {
       const digest = await hash(token);
       try {
         const results = await env.DB.batch([
+          env.DB.prepare('INSERT INTO users (id) SELECT ? WHERE EXISTS (SELECT 1 FROM enrollment_invites WHERE token_hash = ? AND used_at IS NULL)').bind(id, inviteHash),
           env.DB.prepare('UPDATE enrollment_invites SET used_at = CURRENT_TIMESTAMP, user_id = ? WHERE token_hash = ? AND used_at IS NULL').bind(id, inviteHash),
-          env.DB.prepare('INSERT INTO users (id) SELECT ? WHERE EXISTS (SELECT 1 FROM enrollment_invites WHERE token_hash = ? AND user_id = ?)').bind(id, inviteHash, id),
-          env.DB.prepare('INSERT INTO device_credentials (user_id, token_hash) SELECT ?, ? WHERE EXISTS (SELECT 1 FROM users WHERE id = ?)').bind(id, digest, id)
+          env.DB.prepare('INSERT INTO device_credentials (user_id, token_hash) SELECT ?, ? WHERE EXISTS (SELECT 1 FROM enrollment_invites WHERE token_hash = ? AND user_id = ?)').bind(id, digest, inviteHash, id)
         ]);
         if (results[0].meta.changes !== 1 || results[1].meta.changes !== 1 || results[2].meta.changes !== 1) {
           return reply({ error: 'invite_unavailable' }, 403);
