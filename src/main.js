@@ -22,7 +22,7 @@ function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
 function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
 
 function normalizeUsageCondition(v) {
-  return ['ac','tok','farketmez','ozel'].includes(v) ? v : 'belirtilmedi';
+  return ['ac','tok','farketmez','ozel','belirtilmedi'].includes(v) ? v : 'belirtilmedi';
 }
 
 function usageConditionLabel(v) {
@@ -419,7 +419,7 @@ function openAddModal(drugId=null) {
     document.getElementById('drug-date').value=new Date().toISOString().split('T')[0];
     document.getElementById('drug-daily').value=1; document.getElementById('drug-duration').value='omur_boyu';
     document.getElementById('drug-days').value=''; document.getElementById('drug-alarm').checked=true;
-    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="tok"]');
+    const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="belirtilmedi"]');
     if (defaultUsageEl) defaultUsageEl.checked = true;
     stockVal=30;
     document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block';
@@ -475,11 +475,13 @@ function saveDrug() {
   const prev = document.getElementById('photo-preview');
   const photo = prev.style.display!=='none' ? prev.src : null;
   const usageCondition = normalizeUsageCondition((document.querySelector('input[name="usage-condition"]:checked')||{}).value);
+  const usageNote = document.getElementById('drug-usage-note').value.trim();
+  if (usageCondition === 'ozel' && !usageNote) { alert('Özel talimat seçildiğinde kullanım talimatını yazın.'); document.getElementById('drug-usage-note').focus(); return; }
   const drug = {
     id: editId || Date.now(),
     name, photo,
     purpose: document.getElementById('drug-purpose').value.trim(),
-    usageNote: document.getElementById('drug-usage-note').value.trim(),
+    usageNote,
     doctor:   document.getElementById('drug-doctor').value.trim(),
     hospital: document.getElementById('drug-hospital').value.trim(),
     date:     document.getElementById('drug-date').value,
