@@ -22,8 +22,8 @@ export default {
       } catch { return reply({ ok: false, database: 'unavailable' }, 503); }
     }
     // Fail closed until a server-side registration secret and abuse controls are configured.
-    if (!env.REGISTRATION_SECRET) return reply({ error: 'registration_not_configured' }, 503);
     if (request.method === 'POST' && path === '/api/devices') {
+      if (!env.REGISTRATION_SECRET) return reply({ error: 'registration_not_configured' }, 503);
       if (request.headers.get('x-registration-secret') !== env.REGISTRATION_SECRET) return reply({ error: 'forbidden' }, 403);
       const id = crypto.randomUUID();
       const token = Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
@@ -40,8 +40,17 @@ export default {
     const owner = await env.DB.prepare('SELECT user_id FROM device_credentials WHERE token_hash = ?').bind(digest).first();
     if (!owner) return reply({ error: 'unauthorized' }, 401);
     if (request.method === 'GET' && path === '/api/medications') {
-      const rows = await env.DB.prepare('SELECT id, name, dosage, usage_condition, active FROM medications WHERE user_id = ? ORDER BY created_at').bind(owner.user_id).all();
-      return reply({ medications: rows.results });
+      const rows = await env.DB.prepare('SELECT m.id, m.name, m.dosage, m.usage_condition, m.active, s.local_time FROM medications m LEFT JOIN schedules s ON s.medication_id = m.id WHERE m.user_id = ? ORDER BY m.created_at, m.id, s.local_time').bind(owner.user_id).all();
+      const medications = [];
+      for (const row of rows.results) {
+        let item = medications[medications.length - 1];
+        if (!item || item.id !== row.id.slice(owner.user_id.length + 1)) {
+          item = { id: row.id.slice(owner.user_id.length + 1), name: row.name, dosage: row.dosage, usage_condition: row.usage_condition, active: row.active, times: [] };
+          medications.push(item);
+        }
+        if (row.local_time !== null) item.times.push(row.local_time);
+      }
+      return reply({ medications });
     }
     if (request.method === 'POST' && path === '/api/medications') {
       if (!(request.headers.get('content-type') || '').startsWith('application/json')) return reply({ error: 'json_required' }, 415);
@@ -59,12 +68,13 @@ export default {
         return reply({ error: 'invalid_medication' }, 400);
       }
       try {
-        const exists = await env.DB.prepare('SELECT user_id FROM medications WHERE id = ?').bind(body.id).first();
+        const dbId = owner.user_id + ':' + body.id;
+        const exists = await env.DB.prepare('SELECT user_id FROM medications WHERE id = ?').bind(dbId).first();
         if (exists && exists.user_id !== owner.user_id) return reply({ error: 'conflict' }, 409);
         if (exists) return reply({ error: 'already_exists' }, 409);
         await env.DB.batch([
-          env.DB.prepare('INSERT INTO medications (id,user_id,name,dosage,usage_condition) VALUES (?,?,?,?,?)').bind(body.id, owner.user_id, body.name.trim(), body.dosage || null, body.usage_condition || null),
-          ...body.times.map((time, index) => env.DB.prepare('INSERT INTO schedules (id,medication_id,local_time) VALUES (?,?,?)').bind(body.id + '_' + index, body.id, time))
+          env.DB.prepare('INSERT INTO medications (id,user_id,name,dosage,usage_condition) VALUES (?,?,?,?,?)').bind(dbId, owner.user_id, body.name.trim(), body.dosage || null, body.usage_condition || null),
+          ...body.times.map((time, index) => env.DB.prepare('INSERT INTO schedules (id,medication_id,local_time) VALUES (?,?,?)').bind(dbId + '_' + index, dbId, time))
         ]);
         return reply({ ok: true, id: body.id }, 201);
       } catch { return reply({ error: 'database_error' }, 503); }
