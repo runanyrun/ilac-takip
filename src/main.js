@@ -810,7 +810,7 @@ async function connectCloudDevice() {
     }
     localStorage.setItem(CLOUD_CREDENTIAL_KEY, result.token);
     input.value = '';
-    status.textContent = 'Test cihazı eşleştirildi. Bulut yedekleme ve bildirimler henüz etkin değil.';
+    status.textContent = 'Test cihazı eşleştirildi. Bildirim gönderimi henüz etkin değil.';
   } catch {
     status.textContent = 'Sunucuya bağlanılamadı. İnternet bağlantısını kontrol edin.';
   } finally {
