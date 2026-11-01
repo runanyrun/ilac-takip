@@ -692,3 +692,8 @@ html, body, #app { background: var(--bg); }
 #page-bugun .alarm-item.focus .alarm-dose{font-size:12px;color:#777;font-weight:500}
 #page-bugun .alarm-item.compact .alarm-dose-tags{display:flex;justify-content:center;gap:7px;flex-wrap:wrap}
 #page-bugun .alarm-item.compact .alarm-dose-tag{font-size:12px;color:#666}
+
+/* Two-step dose acknowledgement for the focus card */
+.alarm-dose-confirm{cursor:pointer;border:1px solid #c6c6c6;font-family:inherit}
+.alarm-dose-confirm.is-confirmed{background:#1f1f1f!important;color:#fff!important;border-color:#1f1f1f}
+.alarm-action:disabled{opacity:.4;cursor:not-allowed}
