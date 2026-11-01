@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1a3a5c">
+<meta name="theme-color" content="#f4f4f2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="İlaç Takip">
 <title>İlaç Takip</title>
 <link rel="manifest" href="manifest.json?v=20260420">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/styles.css?v=20260420">
+<link rel="stylesheet" href="src/styles.css?v=20261101-mono">
 </head>
 <body>
 <div id="app">
@@ -21,21 +21,16 @@
         <p id="header-date"></p>
       </div>
       <div class="header-actions">
-        <button class="icon-btn" onclick="requestNotif()" title="Bildirim">🔔</button>
-        <button class="icon-btn" onclick="exportData()" title="Yedek">💾</button>
-        <button class="icon-btn" onclick="importData()" title="Geri Yükle">📂</button>
+        <button type="button" class="menu-icon-trigger" id="main-settings-trigger" aria-label="Ayarlar menüsünü aç" aria-controls="main-settings-panel" aria-expanded="false" onclick="toggleMainSettings()"><span class="menu-lines" aria-hidden="true"><i></i><i></i><i></i></span></button>
       </div>
     </div>
   </div>
-  <div class="today-bar">
-    <div class="today-stat"><div class="num" id="stat-total">0</div><div class="lbl">İlaç</div></div>
-    <div class="today-stat"><div class="num" id="stat-today">0</div><div class="lbl">Bugün</div></div>
-    <div class="today-stat"><div class="num" id="stat-done">0</div><div class="lbl">Alındı</div></div>
-  </div>
+  <div class="settings-backdrop" id="settings-backdrop" hidden onclick="toggleMainSettings()"></div>
+  <section class="main-settings-panel" id="main-settings-panel" hidden role="dialog" aria-modal="true" aria-label="Ayarlar" tabindex="-1"><div class="settings-drawer-top"><button class="settings-mobile-back" type="button" onclick="toggleMainSettings()" aria-label="Geri dön">←</button><div class="settings-panel-heading">AYARLAR</div><button class="settings-close" type="button" onclick="toggleMainSettings()" aria-label="Ayarları kapat">×</button></div><div class="settings-panel-label">İlaç fotoğrafı boyutu</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option" data-photo-size="large" onclick="setFocusPhotoSize('large')">Büyük</button><button type="button" class="photo-size-option" data-photo-size="small" onclick="setFocusPhotoSize('small')">Küçük</button><button type="button" class="photo-size-option" data-photo-size="hidden" onclick="setFocusPhotoSize('hidden')">Gizle</button></div><div class="settings-panel-heading settings-extra-heading">DİĞER İŞLEMLER</div><div class="settings-action-list"><button type="button" onclick="requestNotif()">Bildirim izni</button><button type="button" onclick="exportData()">Verileri yedekle</button><button type="button" onclick="importData()">Yedekten geri yükle</button><button type="button" onclick="openCloudSetup()">Bulut test bağlantısı</button></div></section>
   <div class="tabs">
-    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">💊 İlaçlar</button>
-    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">📅 Bugün</button>
-    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)">📋 Geçmiş</button>
+    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">İlaçlar</button>
+    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">Bugün</button>
+    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)">Geçmiş</button>
   </div>
   <div class="content">
     <div class="page" id="page-ilaclar">
@@ -52,12 +47,12 @@
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
     <div class="modal-handle"></div>
-    <div class="modal-title" id="modal-title">Yeni İlaç Ekle</div>
+    <div class="medicine-editor-header"><button type="button" class="medicine-editor-back" onclick="closeModal()" aria-label="Geri dön">←</button><div class="modal-title" id="modal-title">Yeni İlaç Ekle</div></div>
     <div class="form-group">
       <label class="form-label">Kutu Fotoğrafı</label>
       <div class="photo-upload">
         <input type="file" accept="image/*" capture="environment" id="photo-input" onchange="handlePhoto(event)">
-        <div id="photo-placeholder"><div class="icon">📷</div><p>Fotoğraf çek veya galeriden seç</p></div>
+        <div id="photo-placeholder"><p>Kutu fotoğrafı ekle</p><small>Fotoğraf çek veya galeriden seç</small></div>
         <img class="photo-preview" id="photo-preview">
       </div>
     </div>
@@ -65,6 +60,7 @@
       <label class="form-label">İlaç Adı *</label>
       <input type="text" class="form-input" id="drug-name" placeholder="Örn: Beloc Zok 50mg">
     </div>
+    <div class="form-group"><label class="form-label" for="drug-purpose">İlaç açıklaması (isteğe bağlı)</label><textarea class="form-input" id="drug-purpose" rows="2" maxlength="240" placeholder="Örn: Tansiyon için"></textarea></div>
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">Doktor</label>
@@ -103,18 +99,22 @@
       <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
     </div>
     <div class="form-group">
-      <label class="form-label">Kullanım Durumu</label>
+      <label class="form-label">Yemekle kullanım talimatı</label><p class="form-hint">İlaç kutusu, reçete veya eczacı talimatına göre seçin.</p>
       <div class="usage-condition-group">
+        <label class="usage-condition-option"><input type="radio" name="usage-condition" value="belirtilmedi" checked><span>Henüz belirtilmedi</span></label>
         <label class="usage-condition-option">
           <input type="radio" name="usage-condition" value="ac">
           <span>Aç</span>
         </label>
         <label class="usage-condition-option">
-          <input type="radio" name="usage-condition" value="tok" checked>
+          <input type="radio" name="usage-condition" value="tok">
           <span>Tok</span>
         </label>
+        <label class="usage-condition-option"><input type="radio" name="usage-condition" value="farketmez"><span>Aç / tok fark etmez</span></label>
+        <label class="usage-condition-option"><input type="radio" name="usage-condition" value="ozel"><span>Özel talimat</span></label>
       </div>
     </div>
+    <div class="form-group"><label class="form-label" for="drug-usage-note">Ek kullanım talimatı</label><input class="form-input" id="drug-usage-note" maxlength="120" placeholder="Doktor / eczacı talimatı"></div>
     <div class="form-group">
       <label class="form-label">Kutudaki Tablet Adedi</label>
       <div class="stock-counter">
@@ -127,12 +127,12 @@
     </div>
     <div class="form-group">
       <div class="toggle-row">
-        <span class="toggle-label">🔔 Alarm Aktif</span>
+        <span class="toggle-label">Alarm aktif</span>
         <label class="toggle"><input type="checkbox" id="drug-alarm" checked><span class="toggle-slider"></span></label>
       </div>
     </div>
-    <button class="btn-primary" onclick="saveDrug()">✅ Kaydet</button>
-    <button class="btn-primary btn-danger" id="delete-btn" style="display:none;margin-top:10px" onclick="deleteDrug()">🗑️ Sil</button>
+    <button class="btn-primary" onclick="saveDrug()">Kaydet</button>
+    <button class="btn-primary btn-danger" id="delete-btn" style="display:none;margin-top:10px" onclick="deleteDrug()">İlacı sil</button>
     <button style="width:100%;padding:14px;background:none;border:none;font-family:'Nunito',sans-serif;font-size:14px;color:var(--muted);cursor:pointer;margin-top:8px" onclick="closeModal()">İptal</button>
   </div>
 </div>
@@ -142,6 +142,17 @@
   <div class="modal" id="detail-content"></div>
 </div>
 
+<div class="modal-overlay" id="cloud-modal" role="dialog" aria-modal="true" aria-labelledby="cloud-title">
+  <div class="modal">
+    <h2 id="cloud-title">☁️ Test Cihazı Eşleştirme</h2>
+    <p>Tek kullanımlık davet kodunu girin. Kod yalnızca Cloudflare API’ye gönderilir; GitHub’a veya yedek dosyasına eklenmez.</p>
+    <label for="cloud-invite">Davet kodu (64 karakter)</label>
+    <input id="cloud-invite" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" style="width:100%;padding:12px;margin:10px 0">
+    <button class="btn-primary" id="cloud-connect-btn" onclick="connectCloudDevice()">Cihazı eşleştir</button>
+    <p id="cloud-status" role="status" aria-live="polite"></p>
+    <button style="width:100%;padding:12px;margin-top:8px" onclick="closeCloudSetup()">Kapat</button>
+  </div>
+</div>
 <input type="file" id="import-file" accept="application/json" style="display:none">
 
 <script>
@@ -161,6 +172,6 @@
 </script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script defer src="src/main.js?v=20260420"></script>
+<script defer src="src/main.js?v=20261101-cloud"></script>
 </body>
 </html>
