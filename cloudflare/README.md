@@ -42,3 +42,9 @@ The frontend's JSON export now includes medication history, and importing a back
 - `GET /api/backup` returns `{backup,revision,updatedAt}` or 404; `PUT /api/backup` accepts a version-2 backup, max 256 KiB serialized, with `If-Match: *` for first upload or the previously fetched SHA-256 revision for updates. Mismatches return 409, missing precondition returns 428. Identical payloads are idempotent.
 - Backup endpoints require a valid device bearer token. Registration remains disabled and there is no browser sync UI. This is **not** yet a verified restore or end-to-end cloud sync.
 - Test concurrent revisions, recovery, payload validation and authentication before connecting real patient data. D1 snapshots are not a substitute for an independent user-held backup.
+
+## One-device enrollment (staged)
+- D1 table `enrollment_invites(token_hash,created_at,used_at,user_id)` exists. Provision a random 32-byte invite **out of band** by inserting only its SHA-256 hash into this table; never commit the invite or device bearer token to GitHub or public JavaScript.
+- `POST /api/devices` accepts JSON `{\"invite\":\"<64 lowercase hex>\"}` and returns a device token only for an unused invitation. Device tokens are stored hashed in `device_credentials`.
+- Enrollment code is on the draft feature branch only; it has **not been deployed or integration tested**. No invitation has been provisioned and no phone is connected yet.
+- Single-device test setup is not equivalent to robust production authentication, rate limiting, or recovery.
