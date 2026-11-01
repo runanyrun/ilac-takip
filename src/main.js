@@ -169,6 +169,8 @@ function switchTab(name, el) {
   document.getElementById('page-'+name).classList.add('active');
   const tabEl = el || document.querySelector(`.tab[data-tab="${name}"]`);
   if (tabEl) tabEl.classList.add('active');
+  const addButton = document.getElementById('add-drug-fab');
+  if (addButton) addButton.hidden = name !== 'ilaclar';
   if (name==='bugun')  renderToday();
   if (name==='gecmis') renderHistoryPage();
   if (name==='ilaclar') renderDrugs();
