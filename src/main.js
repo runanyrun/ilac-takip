@@ -307,8 +307,8 @@ function alarmHTML(i, variant='list') {
   const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
   const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
-    ? `<div class="alarm-overdue-text">Gecikti · ${formatDelayText(i.diff)}</div>`
-    : '';
+    ? `<div class="alarm-overdue-text" role="status">GECİKTİ · ${formatDelayText(i.diff)}</div>`
+    : (!i.done && !i.skipped ? '<div class="alarm-waiting-text" role="status">BEKLİYOR</div>' : '');
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = ({tok:'TOK KARNINA',ac:'AÇ KARNINA',farketmez:'AÇ / TOK FARK ETMEZ',ozel:'ÖZEL TALİMAT',belirtilmedi:'TALİMAT BELİRTİLMEDİ'})[usageCondition];
   const remaining = parseInt(i.drug.stock, 10) || 0;
