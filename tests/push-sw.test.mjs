@@ -38,5 +38,5 @@ test('MVP: bildirim tıklaması hedefi açar', async () => {
   const { listeners } = serviceWorker({ clients: { openWindow: async url => { opened = url; } } });
   listeners.get('notificationclick')({ notification: { data: { url: './index.html' }, close() { closed = true; } },
     waitUntil: p => { completion = p; } });
-  await completion; assert.ok(closed); assert.equal(opened, './index.html');
+  await completion; assert.ok(closed); assert.equal(opened, 'https://test.invalid/index.html');
 });

@@ -23,7 +23,9 @@
 ## Mevcut dosyaları koruma
 
 Kök `index.html`, `src/`, `sw.js`, `manifest.json`, `firebase-messaging-sw.js`,
-`backend/` ve `supabase/` eski MVP olarak yerinde ve değiştirilmeden korundu.
+`backend/` ve `supabase/` eski MVP olarak yerinde korundu. İlk hazırlıkta uygulama
+koduna dokunulmadı; Issue #4 kapsamında aşağıda belirtilen yerel güvenlik/veri
+koruma düzeltmeleri yapıldı. Bunlar canlı Worker'ın kaynakları değildir.
 Hiçbiri yeni Worker için giriş veya assets dizini olarak bağlanmadı.
 Eski Firebase dosyalarının korunması yeni entegrasyona dahil edildikleri anlamına
 gelmez. Yeni Worker'a Firebase veya OneSignal eklemeyin.
@@ -80,27 +82,31 @@ Bu aşamada sahte runtime bağımlılığı veya kilit dosyası üretilmedi.
 
 ## Otomatik testler
 
-Node 24+ (CI: Node 24), paket kurulumu gerektirmez. Çalıştırıcı bu ortamda alt
+Node 24+ (CI: Node 24). Birim testleri yerleşik Node API'lerini kullanır;
+tarayıcı testleri lockfile ile sabitlenen Playwright gerektirir. Çalıştırıcı bu ortamda alt
 süreçlerin yalnız dosya düzeyinde başarı raporlamasını önlemek için
 `--test-isolation=none` kullanır; her test kendi VM ortamını oluşturur:
 
 ```sh
 cd /workspace/ilac-takip
+npm ci --ignore-scripts
 npm test
+npx playwright install chromium
+npm run test:browser
 npm run check:import
 ```
 
-İkinci komut kaynak eksikken **başarısız olmalıdır**. Testlerin yeşil olması canlı
+`check:import` kaynak eksikken **başarısız olmalıdır**. Testlerin yeşil olması canlı
 geçişe hazır olunduğunu göstermez. `test.todo` bilinen MVP hatalarını gerçek
 assertion'larla gösterir; `test.skip` canlı kaynak eksikliğidir. Çıktıdaki passed,
 todo ve skipped ayrı değerlendirilmelidir.
 
 - localStorage: anahtarların korunması, sentetik veri turu, yedek alanları ve token
-  dışlanması; bozuk JSON'un korunması mevcut MVP'de TODO/başarısız beklentidir.
+  dışlanması; bozuk JSON'un üzerine yazılmaması normal regresyon testidir.
 - Web Push: gerçek MVP `push` handler'ı, metin fallback, bildirim tıklaması.
 - Service worker: ağ kesilmesinde cache fallback. VM mock'u kullanılır; gerçek
   tarayıcı kurulumu, lifecycle ve origin izolasyonunu kanıtlamaz.
-- Zamanlayıcı: izin kontrolü; aynı saate kurulu alarmın iptali bilinen TODO'dur.
+- Zamanlayıcı: izin kontrolü ve aynı saate kurulu alarmların birbirini iptal etmemesi.
 - Cron: gerçek Node demo handler'ları mock taşıyıcı ile çalıştırılır; ağ isteği ve
   gerçek teslim yoktur. Bunlar Cloudflare `scheduled()` testleri değildir.
 - Canlı cron/yetkilendirme senaryoları kaynak eksikliği nedeniyle açıkça skip'tir.

@@ -46,13 +46,20 @@ function setFocusPhotoSize(size) {
   updateMainSettings();
 }
 
-function loadDrugs()   { try { return JSON.parse(localStorage.getItem(LS_DRUGS))   || []; } catch(e){ return []; } }
-function loadLog()     { try { return JSON.parse(localStorage.getItem(LS_LOG))     || {}; } catch(e){ return {}; } }
-function loadHistory() { try { return JSON.parse(localStorage.getItem(LS_HISTORY)) || []; } catch(e){ return []; } }
-
-function saveDrugs(d)   { localStorage.setItem(LS_DRUGS,   JSON.stringify(d)); }
-function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
-function saveHistory(h) { localStorage.setItem(LS_HISTORY, JSON.stringify(h)); }
+function loadDrugs() { return localData().read(LS_DRUGS); }
+function loadLog() { return localData().read(LS_LOG); }
+function loadHistory() { return localData().read(LS_HISTORY); }
+function localData() {
+  if (!localData.instance) localData.instance = IlacSafety.storage(localStorage, {
+    [LS_DRUGS]: { valid: IlacSafety.validDrugs, empty: () => [] },
+    [LS_LOG]: { valid: IlacSafety.validLog, empty: () => ({}) },
+    [LS_HISTORY]: { valid: IlacSafety.validHistory, empty: () => [] }
+  });
+  return localData.instance;
+}
+function saveDrugs(d) { localData().commit({ [LS_DRUGS]: d }); }
+function saveLog(l) { localData().commit({ [LS_LOG]: l }); }
+function saveHistory(h) { localData().commit({ [LS_HISTORY]: h }); }
 
 function normalizeUsageCondition(v) {
   return ['ac','tok','farketmez','ozel','belirtilmedi'].includes(v) ? v : 'belirtilmedi';
@@ -87,13 +94,28 @@ let pushReady = false;
 let takingState = {};
 const expandedDrugNotes = new Set();
 function toggleDrugNote(id) { const k=String(id); if(expandedDrugNotes.has(k)) expandedDrugNotes.delete(k); else expandedDrugNotes.add(k); renderToday(); }
-function safeDrugText(value) { return String(value||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+function safeDrugText(value) { return IlacSafety.html(value); }
+function safePhoto(value) { return IlacSafety.photo(value); }
+let mutationHistory = null;
+function mutateRecords(change) {
+  const oldDrugs = JSON.stringify(drugs), oldLog = JSON.stringify(takenLog);
+  mutationHistory = loadHistory();
+  try {
+    change();
+    localData().commit({ [LS_DRUGS]: drugs, [LS_LOG]: takenLog, [LS_HISTORY]: mutationHistory });
+    return true;
+  } catch (error) {
+    drugs = JSON.parse(oldDrugs); takenLog = JSON.parse(oldLog);
+    alert(error.message); return false;
+  } finally { mutationHistory = null; }
+}
+
 
 const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20260420';
+const APP_VERSION = '20261103-safety1';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -103,9 +125,16 @@ renderAll();
 openDefaultTab();
 scheduleAlarms();
 checkNotifBanner();
+loadHistory();
+if (localData().faults.size) {
+  const warning = document.createElement('p');
+  warning.setAttribute('role', 'alert');
+  warning.textContent = 'Yerel veriler okunamadı. Kayıtlar korunuyor; yazma durduruldu. Verileri yedekle ile ham yedeği kaydedin.';
+  document.getElementById('app').prepend(warning);
+}
 setInterval(updateHeaderDate, 60000);
 setTimeout(() => {
-  if (Notification.permission === 'granted') {
+  if ('Notification' in window && Notification.permission === 'granted') {
     setupWebPush().catch(()=>{});
     setupFirebaseMessaging().catch(()=>{});
   }
@@ -152,7 +181,14 @@ function showUpdateToast() {
   document.body.appendChild(toast);
 
   const btn = document.getElementById('sw-update-btn');
-  if (btn) btn.addEventListener('click', () => window.location.reload());
+  if (btn) btn.addEventListener('click', async () => {
+    if (document.querySelector('#add-modal.open') && !confirm('Kaydedilmemiş düzenlemeyi kapatıp güncellemek istiyor musunuz?')) return;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration?.waiting) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload(), { once: true });
+      registration.waiting.postMessage({ type: 'ACTIVATE_UPDATE' });
+    } else window.location.reload();
+  });
 }
 
 function updateHeaderDate() {
@@ -196,22 +232,22 @@ function renderDrugs() {
     const daysLeft = Math.floor(remaining / dailyDose);
     const stockClass = remaining <= 0 ? 'stock-empty' : (daysLeft <= 7 ? 'stock-low' : 'stock-ok');
     const stockText  = remaining <= 0 ? '❌ Bitti' : (daysLeft <= 7 ? `⚠️ ${daysLeft}g` : `✅ ${daysLeft}g`);
-    const durText = d.duration === 'omur_boyu' ? '∞ Ömür boyu' : (d.duration === 'sure' ? `${d.days} gün` : 'Kutu bitince');
+    const durText = d.duration === 'omur_boyu' ? '∞ Ömür boyu' : (d.duration === 'sure' ? `${safeDrugText(d.days)} gün` : 'Kutu bitince');
     const usageCondition = normalizeUsageCondition(d.usageCondition);
     const usage = usageConditionLabel(usageCondition);
     const times = Array.isArray(d.times) ? d.times.filter(Boolean) : [];
     const timeBadges = times.length
-      ? times.slice(0,3).map(t => `<span class="pill-badge pill-orange">${t}</span>`).join('') +
+      ? times.slice(0,3).map(t => `<span class="pill-badge pill-orange">${safeDrugText(t)}</span>`).join('') +
         (times.length > 3 ? `<span class="pill-badge pill-gray">+${times.length-3} saat</span>` : '')
       : '<span class="pill-badge pill-gray">Saat yok</span>';
     return `<div class="drug-card" onclick="showDetail(${d.id})" style="animation-delay:${i*0.05}s">
       <div class="drug-card-stripe" style="background:${color}"></div>
-      ${d.photo ? `<img class="drug-card-img" src="${d.photo}">` : `<div class="drug-card-img-placeholder">💊</div>`}
+      ${d.photo ? `<img class="drug-card-img" src="${safePhoto(d.photo)}">` : `<div class="drug-card-img-placeholder">💊</div>`}
       <div class="drug-card-info">
-        <div class="drug-card-name">${d.name}</div>
-        <div class="drug-card-meta">${[d.doctor?'Dr.'+d.doctor:'', d.hospital].filter(Boolean).join(' · ')}</div>
+        <div class="drug-card-name">${safeDrugText(d.name)}</div>
+        <div class="drug-card-meta">${safeDrugText([d.doctor?'Dr.'+d.doctor:'', d.hospital].filter(Boolean).join(' · '))}</div>
         <div class="drug-card-pills">
-          <span class="pill-badge pill-blue">Günde ${d.daily}x</span>
+          <span class="pill-badge pill-blue">Günde ${safeDrugText(d.daily)}x</span>
           <span class="pill-badge pill-usage ${usageCondition}">${usage}</span>
           ${timeBadges}
           <span class="pill-badge pill-gray">${durText}</span>
@@ -323,14 +359,14 @@ function alarmHTML(i, variant='list') {
     ${topTags}
     ${doneOverlay}
     <div class="alarm-image-wrap">
-      ${i.drug.photo ? `<img class="alarm-photo" src="${i.drug.photo}" alt="${i.drug.name} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
+      ${i.drug.photo ? `<img class="alarm-photo" src="${safePhoto(i.drug.photo)}" alt="${safeDrugText(i.drug.name)} kutu fotoğrafı">` : `<div class="alarm-photo-placeholder">💊</div>`}
     </div>
     <div class="alarm-name">${i.drug.purpose ? `<button type="button" class="alarm-name-toggle" aria-expanded="${expandedDrugNotes.has(String(i.drug.id))}" onclick="toggleDrugNote('${i.drug.id}')">${safeDrugText(i.drug.name)} ⌄</button>` : safeDrugText(i.drug.name)}</div>
     ${i.drug.purpose && expandedDrugNotes.has(String(i.drug.id)) ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.purpose)}</div>` : ''}
     <div class="alarm-time">${i.done && takenText ? takenText : i.time}</div>
     ${i.skipped ? `<div class="dose-time-detail">Atlandı · Planlanan ${i.time}</div>` : i.done ? `<div class="dose-time-detail">${takenText ? 'Alındığı saat · Planlanan '+i.time : 'Alındı · Planlanan '+i.time}</div>` : ''}
     ${overdueInfo}
-    <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><span class="alarm-dose-tag">${i.drug.daily} ADET</span></div>
+    <div class="alarm-dose-tags"><span class="alarm-usage-badge ${usageCondition}" aria-label="Kullanım durumu: ${usageDisplay}">${usageDisplay}</span><span class="alarm-dose-tag">${safeDrugText(i.drug.daily)} ADET</span></div>
     ${i.drug.usageNote ? `<div class="alarm-purpose-note">${safeDrugText(i.drug.usageNote)}</div>` : ""}
     <div class="alarm-support">
       <div class="alarm-dose">${i.drug.duration==='omur_boyu'?'Ömür boyu':(i.drug.duration==='sure'?i.drug.days+' günlük':'Kutu bitince')}</div>
@@ -344,46 +380,31 @@ function alarmHTML(i, variant='list') {
 }
 
 function toggleTaken(key) {
-  const parts = key.split('_');
-  const id = parts[1];
-  const d = drugs.find(x => x.id == id);
-  if (takenLog[key]) {
-    if (!confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
-    const wasTaken = takenLog[key] !== 'skipped';
-    delete takenLog[key];
-    if (d && wasTaken) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
-    saveDrugs(drugs); saveLog(takenLog);
-    renderToday();
-    renderDrugs();
-    syncPushSchedule();
-    return;
-  }
-
-  if (takingState[key]) return;
-  takingState[key] = true;
-  renderToday();
-
-  setTimeout(() => {
-    if (!takingState[key]) return;
-    delete takingState[key];
-    takenLog[key] = new Date().toISOString();
-    if (d && d.stock > 0) { d.stock = Math.max(0,(d.stock||0)-1); logHistory(d.id,'İlaç alındı'); }
-    saveDrugs(drugs); saveLog(takenLog);
-    renderToday();
-    renderDrugs();
-    syncPushSchedule();
-  }, 650);
+  const d = drugs.find(x => String(x.id) === key.split('_')[1]);
+  if (!d) return;
+  if (takenLog[key] && !confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
+  if (!mutateRecords(() => {
+    if (takenLog[key]) {
+      if (takenLog[key] !== 'skipped') { d.stock += 1; logHistory(d.id, 'İlaç iadesi'); }
+      delete takenLog[key];
+    } else {
+      if (d.stock <= 0) throw new Error('Stok yok. Önce stok bilgisini güncelleyin.');
+      d.stock -= 1;
+      takenLog[key] = new Date().toISOString();
+      logHistory(d.id, 'İlaç alındı');
+    }
+  })) return;
+  renderAll(); scheduleAlarms(); syncPushSchedule();
 }
 
 function skipDose(key) {
-  if (takenLog[key] || takingState[key]) return;
-  if (!confirm('Bu dozu atlandı olarak kaydetmek istiyor musunuz? İlaç alınmış sayılmayacak.')) return;
-  takenLog[key] = 'skipped';
-  const d = drugs.find(x => String(x.id) === key.split('_')[1]);
-  if (d) logHistory(d.id, 'Doz atlandı');
-  saveLog(takenLog);
-  renderToday();
-  syncPushSchedule();
+  if (takenLog[key] || !confirm('Bu dozu atlandı olarak kaydetmek istiyor musunuz? İlaç alınmış sayılmayacak.')) return;
+  if (!mutateRecords(() => {
+    takenLog[key] = 'skipped';
+    const d = drugs.find(x => String(x.id) === key.split('_')[1]);
+    if (d) logHistory(d.id, 'Doz atlandı');
+  })) return;
+  renderAll(); scheduleAlarms(); syncPushSchedule();
 }
 
 function renderStats() {
@@ -406,7 +427,7 @@ function renderHistoryPage() {
     const ds = dt.toLocaleDateString('tr-TR')+' '+dt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
     return `<div class="history-item">
       <div class="history-dot" style="background:${colors[h.action]||'#7a8fa0'}"></div>
-      <div class="history-text"><strong>${h.name}</strong> — ${h.action}</div>
+      <div class="history-text"><strong>${safeDrugText(h.name)}</strong> — ${safeDrugText(h.action)}</div>
       <div class="history-date">${ds}</div>
     </div>`;
   }).join('');
@@ -414,9 +435,10 @@ function renderHistoryPage() {
 
 function logHistory(drugId, action) {
   const d = drugs.find(x=>x.id==drugId);
-  const hist = loadHistory();
+  const hist = mutationHistory || loadHistory();
   hist.unshift({ drugId, name:d?d.name:'?', action, ts:new Date().toISOString() });
-  saveHistory(hist.slice(0,200));
+  if (mutationHistory) mutationHistory = hist.slice(0,200);
+  else saveHistory(hist.slice(0,200));
 }
 
 // ── MODAL ──
@@ -440,7 +462,7 @@ function openAddModal(drugId=null) {
     const usage = normalizeUsageCondition(d.usageCondition);
     const usageEl = document.querySelector(`input[name="usage-condition"][value="${usage}"]`);
     if (usageEl) usageEl.checked = true;
-    if (d.photo) { document.getElementById('photo-preview').src=d.photo; document.getElementById('photo-preview').style.display='block'; document.getElementById('photo-placeholder').style.display='none'; }
+    if (d.photo) { document.getElementById('photo-preview').src=safePhoto(d.photo); document.getElementById('photo-preview').style.display='block'; document.getElementById('photo-placeholder').style.display='none'; }
     else { document.getElementById('photo-preview').style.display='none'; document.getElementById('photo-placeholder').style.display='block'; }
     renderTimeSlots(d.times||[]);
   } else {
@@ -491,7 +513,7 @@ function renderTimeSlots(times) {
   timeSlots=[...times];
   document.getElementById('time-slots').innerHTML = timeSlots.map((t,i)=>`
     <div class="time-slot">
-      <input type="time" value="${t}" onchange="timeSlots[${i}]=this.value">
+      <input type="time" value="${safeDrugText(t)}" onchange="timeSlots[${i}]=this.value">
       <button class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
     </div>`).join('');
 }
@@ -524,18 +546,21 @@ function saveDrug() {
     stock:    stockVal,
     usageCondition,
   };
-  if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=normalizeDrug(drug); }
-  else { drugs.push(normalizeDrug(drug)); logHistory(drug.id,'İlaç eklendi'); }
-  saveDrugs(drugs);
+  if (!mutateRecords(() => {
+    if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=normalizeDrug(drug); }
+    else { drugs.push(normalizeDrug(drug)); logHistory(drug.id,'İlaç eklendi'); }
+  })) return;
   closeModal(); renderAll(); scheduleAlarms();
   syncPushSchedule();
 }
 
 function deleteDrug() {
   if (!editId || !confirm('Bu ilacı silmek istediğinden emin misin?')) return;
-  logHistory(editId,'İlaç silindi');
-  drugs = drugs.filter(d=>d.id!=editId);
-  saveDrugs(drugs); closeModal(); renderAll();
+  if (!mutateRecords(() => {
+    logHistory(editId,'İlaç silindi');
+    drugs = drugs.filter(d=>d.id!=editId);
+  })) return;
+  closeModal(); renderAll(); scheduleAlarms();
   syncPushSchedule();
 }
 
@@ -545,21 +570,21 @@ function showDetail(id) {
   const remaining = d.stock||0;
   const daysLeft = Math.floor(remaining/(parseInt(d.daily)||1));
   const today = todayStr();
-  const takenToday = (d.times||[]).filter(t=>takenLog[`${today}_${d.id}_${t}`]).length;
+  const takenToday = (d.times||[]).filter(t=>takenLog[`${today}_${d.id}_${t}`] && takenLog[`${today}_${d.id}_${t}`] !== 'skipped').length;
   document.getElementById('detail-content').innerHTML = `
     <div class="modal-handle"></div>
-    ${d.photo?`<img src="${d.photo}" style="width:100%;height:180px;object-fit:cover;border-radius:16px;margin-bottom:16px">`:`<div style="font-size:50px;text-align:center;margin-bottom:16px">💊</div>`}
-    <div style="font-size:22px;font-weight:900;margin-bottom:4px">${d.name}</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">${[d.doctor?'Dr.'+d.doctor:'',d.hospital,d.date?formatDate(d.date):''].filter(Boolean).join(' · ')}</div>
+    ${d.photo?`<img src="${safePhoto(d.photo)}" style="width:100%;height:180px;object-fit:cover;border-radius:16px;margin-bottom:16px">`:`<div style="font-size:50px;text-align:center;margin-bottom:16px">💊</div>`}
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">${safeDrugText(d.name)}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px">${safeDrugText([d.doctor?'Dr.'+d.doctor:'',d.hospital,d.date?formatDate(d.date):''].filter(Boolean).join(' · '))}</div>
     <div class="detail-grid">
       <div class="detail-stat"><div class="val">${remaining}</div><div class="key">Kalan tablet</div></div>
       <div class="detail-stat"><div class="val">${daysLeft}</div><div class="key">Kalan gün</div></div>
-      <div class="detail-stat"><div class="val">${d.daily}</div><div class="key">Günlük doz</div></div>
+      <div class="detail-stat"><div class="val">${safeDrugText(d.daily)}</div><div class="key">Günlük doz</div></div>
       <div class="detail-stat"><div class="val">${takenToday}/${(d.times||[]).length}</div><div class="key">Bugün alınan</div></div>
     </div>
     <div style="background:var(--surface2);border-radius:14px;padding:14px;margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)">Süre</span><span style="font-weight:800">${d.duration==='omur_boyu'?'∞ Ömür boyu':(d.duration==='sure'?d.days+' gün':'Kutu bitince')}</span></div>
-      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:var(--muted)">Alım saatleri</span><span style="font-weight:800">${(d.times||[]).join(', ')||'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><span style="color:var(--muted)">Süre</span><span style="font-weight:800">${d.duration==='omur_boyu'?'∞ Ömür boyu':(d.duration==='sure'?safeDrugText(d.days)+' gün':'Kutu bitince')}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px"><span style="color:var(--muted)">Alım saatleri</span><span style="font-weight:800">${safeDrugText((d.times||[]).join(', ')||'—')}</span></div>
     </div>
     <div style="display:flex;gap:10px">
       <button class="btn-primary" style="flex:1" onclick="closeModal();openAddModal(${d.id})">✏️ Düzenle</button>
@@ -573,9 +598,9 @@ function addStockPrompt(id) {
   const d = drugs.find(x=>x.id==id); if(!d) return;
   const n = parseInt(prompt(`"${d.name}"\nKaç tablet eklenecek? (Mevcut: ${d.stock})`));
   if (isNaN(n)) return;
-  d.stock = (d.stock||0)+n;
-  logHistory(d.id,'Stok güncellendi');
-  saveDrugs(drugs); renderAll(); closeModal();
+  if (!Number.isSafeInteger(n) || n <= 0) return;
+  if (!mutateRecords(() => { d.stock += n; logHistory(d.id,'Stok güncellendi'); })) return;
+  renderAll(); closeModal();
 }
 
 // ── NOTIFICATIONS ──
@@ -671,14 +696,16 @@ function scheduleAlarms() {
       const next = new Date(); next.setHours(h,m,0,0);
       if (next<=now) next.setDate(next.getDate()+1);
       const ms = next-now;
-      const timer = setTimeout(()=>{
-        new Notification('💊 İlaç Zamanı!',{
+      const notify = () => {
+        const key = `${todayStr()}_${d.id}_${t}`;
+        if (!takenLog[key]) new Notification('💊 İlaç Zamanı!',{
           body: `${d.name} — ${d.daily} adet alınacak`,
           tag: `drug_${d.id}_${t}`
         });
-        scheduleAlarms();
-      }, ms);
-      alarmTimers.push(timer);
+        const nextDay = new Date(); nextDay.setDate(nextDay.getDate() + 1); nextDay.setHours(h,m,0,0);
+        alarmTimers.push(setTimeout(notify, nextDay - new Date()));
+      };
+      alarmTimers.push(setTimeout(notify, ms));
     });
   });
 }
@@ -781,6 +808,12 @@ function currentBackup() {
 }
 
 function exportData() {
+  if (localData().faults.size) {
+    const raw = {};
+    for (const key of [LS_DRUGS, LS_LOG, LS_HISTORY]) raw[key] = localStorage.getItem(key);
+    downloadBackup({ format: 'ilac-takip-recovery', raw }, 'ilac-kurtarma-' + todayStr() + '.json');
+    return;
+  }
   downloadBackup(currentBackup(), 'ilac-yedek-' + todayStr() + '.json');
 }
 
@@ -799,23 +832,13 @@ function importData() {
     reader.onload = () => {
       try {
         const parsed = JSON.parse(reader.result);
-        // Accept the older {drugs,takenLog} export without erasing existing history.
-        if (!parsed || !Array.isArray(parsed.drugs) || !parsed.takenLog ||
-            typeof parsed.takenLog !== 'object' || Array.isArray(parsed.takenLog) ||
-            (parsed.history !== undefined && !Array.isArray(parsed.history)) ||
-            parsed.drugs.length > 1000 || parsed.drugs.some(d => !d || typeof d !== 'object' ||
-              typeof d.name !== 'string' || !d.name.trim())) {
-          alert('Geçersiz veya desteklenmeyen yedek dosyası.');
-          return;
-        }
+        IlacSafety.backup(parsed);
         const incomingDrugs = parsed.drugs.map(normalizeDrug);
         const incomingHistory = parsed.history !== undefined ? parsed.history : loadHistory();
         if (!confirm('Mevcut ilaçlar ve ALDIM kayıtları bu yedekle değiştirilecek. Önce mevcut verilerin yedeği indirilecek. Devam edilsin mi?')) return;
         // Download an undo backup before any local data is overwritten.
         downloadBackup(currentBackup(), 'ilac-geri-al-' + todayStr() + '.json');
-        saveDrugs(incomingDrugs);
-        saveLog(parsed.takenLog);
-        if (parsed.history !== undefined) saveHistory(incomingHistory);
+        localData().commit({ [LS_DRUGS]: incomingDrugs, [LS_LOG]: parsed.takenLog, [LS_HISTORY]: incomingHistory });
         drugs = incomingDrugs;
         takenLog = parsed.takenLog;
         renderAll();

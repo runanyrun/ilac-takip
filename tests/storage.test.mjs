@@ -15,10 +15,10 @@ test('MVP: ilaç, alım ve geçmiş depolama turu', () => {
     localStorage: { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v) }
   });
   // Tamamen sentetik kayıtlar; kişisel veri veya abonelik kullanılmaz.
-  c.saveDrugs([{ id: 1, name: 'Synthetic', stock: 30 }]);
-  c.saveLog({ synthetic: 'skipped' }); c.saveHistory([{ action: 'synthetic' }]);
+  c.saveDrugs([{ id: 1, name: 'Synthetic', stock: 30, daily: 1, times: ['08:00'], duration: 'omur_boyu' }]);
+  c.saveLog({ '2026-11-03_1_08:00': 'skipped' }); c.saveHistory([{ name: 'Synthetic', action: 'synthetic', ts: '2026-11-03T08:00:00Z' }]);
   assert.equal(c.loadDrugs()[0].stock, 30);
-  assert.equal(c.loadLog().synthetic, 'skipped');
+  assert.equal(c.loadLog()['2026-11-03_1_08:00'], 'skipped');
   assert.equal(c.loadHistory()[0].action, 'synthetic');
 });
 
@@ -31,12 +31,12 @@ test('MVP: yedek ilaç/alım/geçmiş içerir, token içermez', () => {
   assert.equal(c.currentBackup().version, 2);
 });
 
-test.todo('MVP kusuru: bozuk JSON açılışta üzerine yazılmadan korunmalı', () => {
+test('MVP: bozuk JSON üzerine yazılmaz, değişiklik reddedilir', () => {
   let value = '{invalid';
   const c = functions('function loadDrugs()', 'function normalizeUsageCondition', {
-    LS_DRUGS: 'drugs', localStorage: { getItem: () => value, setItem: (_, v) => { value = v; } }
+    LS_DRUGS: 'drugs', LS_LOG: 'log', LS_HISTORY: 'history', localStorage: { getItem: () => value, setItem: (_, v) => { value = v; } }
   });
-  c.saveDrugs(c.loadDrugs());
+  assert.throws(() => c.saveDrugs(c.loadDrugs()));
   assert.equal(value, '{invalid');
 });
 
