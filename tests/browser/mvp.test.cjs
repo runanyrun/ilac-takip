@@ -6,9 +6,11 @@ const { readFile } = require('node:fs/promises');
 const { resolve, extname } = require('node:path');
 
 let server, browser, base;
+let serverUnavailable = false;
 before(async () => {
   const root = resolve(__dirname, '../..');
   server = createServer(async (req, res) => {
+    if (serverUnavailable) { req.socket.destroy(); return; }
     try {
       const url = new URL(req.url, 'http://test.invalid');
       const path = resolve(root, '.' + (url.pathname === '/' ? '/index.html' : url.pathname));
@@ -71,7 +73,10 @@ test('MVP tarayıcı: CRUD, alım/geri alma/atlama, geçmiş ve offline veri kal
   await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
-  await context.setOffline(true); await page.reload({ waitUntil: 'domcontentloaded' });
+  // Fail the real local transport: WebKit's protocol offline switch can abort
+  // navigation internally before its service worker gets to serve the cache.
+  serverUnavailable = true; t.after(() => { serverUnavailable = false; });
+  await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof openAddModal === 'function');
   assert.equal((await state(page)).drugs[0].name, 'Synthetic edited');
   await page.locator('[data-tab="ilaclar"]').click(); await page.locator('.drug-card').click();
