@@ -1,5 +1,9 @@
 # One PWA, data preservation and operation budget
 
+> İlk kullanıcı adımı: [iPhone kısa kontrol listesi](iphone-kontrol-listesi.md).
+> Aşağıdaki restore/import/removal adımları bu devam işi için talimat değildir;
+> gelecekte ayrıca doğrulanacak geçiş tasarımıdır. Şimdi veri taşıma/kurulum silme yok.
+
 ## PWA audit and user-verified migration
 
 The development integration preserves manifest and service worker registration identity. MVP metadata is

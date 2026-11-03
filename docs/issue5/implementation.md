@@ -1,3 +1,7 @@
+> Yönetici devamı: [tek özel erişim engeli, risk takibi ve rollback kabul kapısı](remaining-private-work.md).
+> [iPhone kontrol listesi](iphone-kontrol-listesi.md) yalnız okuma/dışa aktarım
+> doğrulaması içindir; kurulum silme veya veri taşıma istemez.
+
 > P4 follow-up: [private candidate patch and acceptance matrix](p4-private-patch-plan.md).
 > An offline, hash-pinned single-statement remover is prepared; only synthetic
 > fixtures have been patched/tested. Actual private-source validation is pending.
