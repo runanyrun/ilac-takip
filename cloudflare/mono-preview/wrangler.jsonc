@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  // Preparation target, deliberately NOT the live Worker name.
+  "name": "ilac-takip-mono-preview-preparation",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-03",
+  "workers_dev": false,
+  "preview_urls": false,
+  // No routes, production environment, cron or remote bindings are enabled.
+  // Issue #2 reports production cron "* * * * *" and KV binding "PUSH_KV".
+  // Deliberately not active here. After a reviewed source import, use a LOCAL
+  // test namespace; never copy the production namespace ID or data into tests.
+  // Example shape only (do not uncomment for production):
+  // "kv_namespaces": [{ "binding": "PUSH_KV", "id": "LOCAL_TEST_NAMESPACE_ID" }],
+  // "triggers": { "crons": ["* * * * *"] },
+  // The actual deployed compatibility date and flags must be recovered first.
+  "build": {
+    "command": "node ../../scripts/verify-worker-import.mjs"
+  }
+}
