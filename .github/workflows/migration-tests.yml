@@ -2,7 +2,7 @@ name: Migration preparation tests
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 permissions:
   contents: read
 jobs:
