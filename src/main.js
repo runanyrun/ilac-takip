@@ -111,8 +111,7 @@ setTimeout(() => {
   }
 }, 1200);
 
-saveDrugs(drugs);
-
+// Açılışta kayıtları tekrar yazma: bozuk verinin sessizce silinmesini önle.
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(`sw.js?v=${APP_VERSION}`)
