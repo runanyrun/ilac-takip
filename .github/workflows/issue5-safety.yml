@@ -1,0 +1,33 @@
+name: Issue 5 safety
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tests-and-pattern-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node --test tests/issue5/*.test.mjs
+      - run: git ls-files -z | node scripts/issue5/check.mjs
+  source-import-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # Deliberately fails closed until a reviewed production source import exists.
+      # No deployment credentials, migrations, remote bindings or publish commands.
+      - run: node scripts/issue5/source-gate.mjs
