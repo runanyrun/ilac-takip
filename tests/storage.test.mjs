@@ -39,3 +39,10 @@ test.todo('MVP kusuru: bozuk JSON açılışta üzerine yazılmadan korunmalı',
   c.saveDrugs(c.loadDrugs());
   assert.equal(value, '{invalid');
 });
+
+test('MVP: uygulama açılışı depolanan ilaçları otomatik olarak yeniden yazmaz', () => {
+  const app = source('src/main.js');
+  const initialization = app.slice(app.indexOf('// ── INIT ──'), app.indexOf('// ── SERVICE WORKER ──'));
+  assert.ok(initialization.includes('renderAll()'));
+  assert.doesNotMatch(initialization, /saveDrugs\s*\(\s*drugs\s*\)/);
+});
