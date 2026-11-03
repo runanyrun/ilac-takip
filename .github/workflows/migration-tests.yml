@@ -8,6 +8,10 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -17,7 +21,11 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts
       - run: npm test
+        if: matrix.browser == 'chromium'
       - run: npm run check:secrets
-      - run: npx playwright install --with-deps chromium
+        if: matrix.browser == 'chromium'
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
       - run: npm run test:browser
+        env:
+          ILAC_BROWSER_ENGINE: ${{ matrix.browser }}
       # Deliberately no Cloudflare credentials, Wrangler or deploy step.

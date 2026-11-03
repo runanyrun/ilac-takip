@@ -57,16 +57,17 @@ test('MVP Node demo cron: yalnız vadesi gelen plan mock taşıyıcıya gönderi
 
 function scheduler() {
   const timers = [], notifications = [];
+  let instant = '2026-11-03T07:59:00Z';
   const c = functions('function scheduleAlarms()', 'function isWebPushCapable()', {
     alarmTimers: [], drugs: [{ id: 1, name: 'A', alarm: true, times: ['08:00'], daily: 1 },
       { id: 2, name: 'B', alarm: true, times: ['08:00'], daily: 1 }],
     window: { Notification: true }, takenLog: {}, todayStr: () => '2026-11-03',
     Notification: Object.assign(function (_, options) { notifications.push(options); }, { permission: 'granted' }),
-    Date: class extends Date { constructor(...args) { super(...(args.length ? args : ['2026-11-03T07:59:00Z'])); } },
+    Date: class extends Date { constructor(...args) { super(...(args.length ? args : [instant])); } },
     setTimeout(fn, delay) { const timer = { fn, delay, cancelled: false }; timers.push(timer); return timer; },
     clearTimeout(timer) { timer.cancelled = true; }
   });
-  return { c, timers, notifications };
+  return { c, timers, notifications, advance: value => { instant = value; } };
 }
 
 test('MVP yerel zamanlayıcı: izinsizken alarm kurulmaz', () => {
@@ -88,3 +89,34 @@ for (const scenario of [
   'kaçırılmış dakika, yeniden deneme ve 404/410 abonelik temizliği',
   'yetkisiz abonelik ve plan istekleri reddedilir'
 ]) test.skip(`CANLI KAYNAK BEKLENİYOR: ${scenario}`, () => {});
+
+
+test('yerel hatırlatma: gelecekteki başlangıç ve uzun timer taşması erken bildirim üretmez', async () => {
+  const { c, timers, notifications } = scheduler();
+  c.drugs = [{id:1,name:'Future',alarm:true,times:['08:00'],date:'2027-01-01',daily:1}];
+  c.scheduleAlarms();
+  assert.equal(timers[0].delay,2147483647);
+  await timers[0].fn();
+  assert.equal(notifications.length,0);
+  assert.equal(timers[1].delay,2147483647);
+});
+test('yerel hatırlatma: iPhone uyumlu service worker gösterimi, alındı/atlandı için sessiz kalır', async () => {
+  const {c,timers,advance}=scheduler();
+  const shown=[];
+  c.navigator={serviceWorker:{getRegistration:async()=>({showNotification:async(title,options)=>shown.push({title,options})})}};
+  c.Notification=Object.assign(function(){throw Error('Constructor unavailable');},{permission:'granted'});
+  c.takenLog={'2026-11-03_2_08:00':'skipped'};
+  c.scheduleAlarms();advance('2026-11-03T08:00:00Z');
+  await timers[0].fn();await timers[1].fn();
+  assert.equal(shown.length,1);assert.equal(shown[0].options.tag,'drug_1_08:00');
+});
+test('bildirim sunucu hatası yerel zamanlayıcıyı durdurmaz veya başarı gibi gösterilmez',async()=>{
+  const alerts=[];let scheduled=0;
+  const c=functions('async function requestNotif()', 'function hasFirebaseConfig',{
+    Notification:{requestPermission:async()=> 'granted'},alert:text=>alerts.push(text),
+    setupWebPush:async()=>{throw Error('Synthetic 503');},setupFirebaseMessaging:async()=>{},
+    checkNotifBanner(){},scheduleAlarms(){scheduled++;}
+  });
+  await c.requestNotif();
+  assert.equal(scheduled,1);assert.match(alerts[0],/bağlantısı kurulamadı/);
+});

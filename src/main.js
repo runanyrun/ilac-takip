@@ -84,7 +84,7 @@ function normalizeDrug(d) {
 }
 
 // ── STATE ──
-let drugs    = loadDrugs().map(normalizeDrug);
+let drugs    = loadDrugs();
 let takenLog = loadLog();
 let editId   = null;
 let stockVal = 30;
@@ -115,7 +115,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261103-develop2';
+const APP_VERSION = '20261103-app3';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -132,9 +132,18 @@ if (localData().faults.size) {
   warning.textContent = 'Yerel veriler okunamadı. Kayıtlar korunuyor; yazma durduruldu. Verileri yedekle ile ham yedeği kaydedin.';
   document.getElementById('app').prepend(warning);
 }
-setInterval(updateHeaderDate, 60000);
+let displayedDay = todayStr();
+function refreshVisibleDay() {
+  updateHeaderDate();
+  renderToday();
+  if (todayStr() !== displayedDay) { displayedDay = todayStr(); scheduleAlarms(); }
+}
+setInterval(refreshVisibleDay, 60000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') { refreshVisibleDay(); scheduleAlarms(); }
+});
 setTimeout(() => {
-  if ('Notification' in window && Notification.permission === 'granted') {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     setupWebPush().catch(()=>{});
     setupFirebaseMessaging().catch(()=>{});
   }
@@ -503,7 +512,7 @@ function openAddModal(drugId=null) {
     renderTimeSlots(d.times||[]);
   } else {
     document.getElementById('drug-name').value=''; document.getElementById('drug-purpose').value=''; document.getElementById('drug-usage-note').value=''; document.getElementById('drug-doctor').value=''; document.getElementById('drug-hospital').value='';
-    document.getElementById('drug-date').value=new Date().toISOString().split('T')[0];
+    document.getElementById('drug-date').value=todayStr();
     document.getElementById('drug-daily').value=1; document.getElementById('drug-duration').value='omur_boyu';
     document.getElementById('drug-days').value=''; document.getElementById('drug-alarm').checked=true;
     const defaultUsageEl = document.querySelector('input[name="usage-condition"][value="belirtilmedi"]');
@@ -561,29 +570,40 @@ function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElement
 function saveDrug() {
   const name = document.getElementById('drug-name').value.trim();
   if (!name) { alert('İlaç adını yazın.'); document.getElementById('drug-name').focus(); return; }
+  const times = [...document.querySelectorAll('#time-slots input')].map(input => input.value);
+  const alarm = document.getElementById('drug-alarm').checked;
+  if ((alarm && !times.length) || times.some(t => !/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) || new Set(times).size !== times.length) {
+    alert('Geçerli ve birbirinden farklı alarm saatleri seçin.'); return;
+  }
+  const daily = Number(document.getElementById('drug-daily').value);
+  if (!Number.isSafeInteger(daily) || daily < 1 || daily > 10) { alert('Günlük adet 1 ile 10 arasında tam sayı olmalı.'); return; }
+  const duration = document.getElementById('drug-duration').value;
+  const days = document.getElementById('drug-days').value;
+  if (duration === 'sure' && (!/^\d+$/.test(days) || Number(days) < 1 || !Number.isSafeInteger(Number(days)))) { alert('Kullanım süresini pozitif tam gün olarak yazın.'); return; }
+  const existing = editId ? drugs.find(d => d.id === editId) : null;
+  if (editId && !existing) { alert('İlaç kaydı bulunamadı. Sayfayı yeniden açın.'); return; }
+  let id = editId || Date.now();
+  while (!editId && drugs.some(d => d.id === id)) id++;
   const prev = document.getElementById('photo-preview');
   const photo = prev.style.display!=='none' ? prev.src : null;
   const usageCondition = normalizeUsageCondition((document.querySelector('input[name="usage-condition"]:checked')||{}).value);
   const usageNote = document.getElementById('drug-usage-note').value.trim();
   if (usageCondition === 'ozel' && !usageNote) { alert('Özel talimat seçildiğinde kullanım talimatını yazın.'); document.getElementById('drug-usage-note').focus(); return; }
   const drug = {
-    id: editId || Date.now(),
+    ...existing,
+    id,
     name, photo,
     purpose: document.getElementById('drug-purpose').value.trim(),
     usageNote,
     doctor:   document.getElementById('drug-doctor').value.trim(),
     hospital: document.getElementById('drug-hospital').value.trim(),
     date:     document.getElementById('drug-date').value,
-    daily:    parseInt(document.getElementById('drug-daily').value)||1,
-    duration: document.getElementById('drug-duration').value,
-    days:     document.getElementById('drug-days').value,
-    alarm:    document.getElementById('drug-alarm').checked,
-    times:    [...timeSlots],
+    daily, duration, days, alarm, times,
     stock:    stockVal,
     usageCondition,
   };
   if (!mutateRecords(() => {
-    if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=normalizeDrug(drug); }
+    if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=normalizeDrug(drug); logHistory(drug.id,'İlaç düzenlendi'); }
     else { drugs.push(normalizeDrug(drug)); logHistory(drug.id,'İlaç eklendi'); }
   })) return;
   closeModal(); renderAll(); scheduleAlarms();
@@ -632,36 +652,43 @@ function showDetail(id) {
 
 function addStockPrompt(id) {
   const d = drugs.find(x=>x.id==id); if(!d) return;
-  const n = parseInt(prompt(`"${d.name}"\nKaç tablet eklenecek? (Mevcut: ${d.stock})`));
-  if (isNaN(n)) return;
-  if (!Number.isSafeInteger(n) || n <= 0) return;
+  const input = prompt(`"${d.name}"\nKaç tablet eklenecek? (Mevcut: ${d.stock})`);
+  if (input === null) return;
+  const n = Number(input);
+  if (!Number.isSafeInteger(n) || n <= 0 || !Number.isSafeInteger(d.stock + n)) { alert('Eklenecek stok pozitif tam sayı olmalı.'); return; }
   if (!mutateRecords(() => { d.stock += n; logHistory(d.id,'Stok güncellendi'); })) return;
   renderAll(); closeModal();
 }
 
 // ── NOTIFICATIONS ──
 function checkNotifBanner() {
-  if (!('Notification' in window)) return;
-  if (!isWebPushCapable()) {
-    document.getElementById('notif-prompt').innerHTML = `
-      <div class="notif-banner">ℹ️ Kalıcı bildirim için uygulamayı iPhone ana ekranına ekleyin.</div>`;
+  const prompt = document.getElementById('notif-prompt');
+  prompt.innerHTML = '';
+  if (typeof Notification === 'undefined' || !isWebPushCapable()) {
+    prompt.innerHTML = '<div class="notif-banner">ℹ️ Arka plan bildirimleri için iPhone’da uygulamayı ana ekrandan açın.</div>';
     return;
   }
-  if (Notification.permission==='granted') return;
-  document.getElementById('notif-prompt').innerHTML = `
-    <div class="notif-banner">🔔 Alarm bildirimleri için izin ver
-      <button onclick="requestNotif()">İzin Ver</button>
-    </div>`;
+  if (Notification.permission === 'granted') return;
+  if (Notification.permission === 'denied') {
+    prompt.innerHTML = '<div class="notif-banner">Bildirim izni kapalı. İzni cihaz ayarlarından kontrol edebilirsiniz.</div>';
+    return;
+  }
+  prompt.innerHTML = `<div class="notif-banner">🔔 Alarm bildirimleri için izin ver
+    <button onclick="requestNotif()">İzin Ver</button></div>`;
 }
 
 async function requestNotif() {
-  if (!('Notification' in window)) { alert('Bu tarayıcı bildirimleri desteklemiyor.'); return; }
-  const p = await Notification.requestPermission();
-  if (p !== 'granted') return;
-  document.getElementById('notif-prompt').innerHTML='';
-  await setupWebPush();
-  await setupFirebaseMessaging();
-  scheduleAlarms();
+  if (typeof Notification === 'undefined') { alert('Bu tarayıcı bildirimleri desteklemiyor.'); return; }
+  try {
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') { checkNotifBanner(); return; }
+  } catch (_) { alert('Bildirim izni alınamadı.'); return; }
+  try {
+    await setupWebPush();
+    await setupFirebaseMessaging();
+  } catch (_) {
+    alert('Bildirim sunucusu bağlantısı kurulamadı. Uygulama açıkken yerel hatırlatmalar kullanılacak.');
+  } finally { checkNotifBanner(); scheduleAlarms(); }
 }
 
 function hasFirebaseConfig(cfg) {
@@ -723,25 +750,34 @@ async function setupFirebaseMessaging() {
 
 function scheduleAlarms() {
   alarmTimers.forEach(t=>clearTimeout(t)); alarmTimers=[];
-  if (!('Notification' in window) || Notification.permission!=='granted') return;
+  if (typeof Notification === 'undefined' || Notification.permission!=='granted') return;
   const now = new Date();
   drugs.forEach(d => {
     if (!d.alarm || !d.times) return;
     d.times.forEach(t => {
       const [h,m] = t.split(':').map(Number);
-      const next = new Date(); next.setHours(h,m,0,0);
+      let next = new Date(); next.setHours(h,m,0,0);
       if (next<=now) next.setDate(next.getDate()+1);
-      const ms = next-now;
-      const notify = () => {
+      const start = d.date ? new Date(d.date + 'T00:00:00') : null;
+      if (start && next < start) { next = start; next.setHours(h,m,0,0); }
+      const arm = () => alarmTimers.push(setTimeout(notify, Math.min(Math.max(0,next-new Date()),2147483647)));
+      const notify = async () => {
+        if (Notification.permission !== 'granted') return;
+        if (new Date() < next) { arm(); return; }
         const key = `${todayStr()}_${d.id}_${t}`;
-        if (!takenLog[key]) new Notification('💊 İlaç Zamanı!',{
-          body: `${d.name} — ${d.daily} adet alınacak`,
-          tag: `drug_${d.id}_${t}`
-        });
-        const nextDay = new Date(); nextDay.setDate(nextDay.getDate() + 1); nextDay.setHours(h,m,0,0);
-        alarmTimers.push(setTimeout(notify, nextDay - new Date()));
+        try {
+          const registration = typeof navigator !== 'undefined' && navigator.serviceWorker?.getRegistration
+            ? await navigator.serviceWorker.getRegistration() : null;
+          if (!takenLog[key]) {
+            const options = { body: `${d.name} — ${d.daily} adet alınacak`, tag: `drug_${d.id}_${t}` };
+            if (registration?.showNotification) await registration.showNotification('💊 İlaç Zamanı!',options);
+            else new Notification('💊 İlaç Zamanı!',options);
+          }
+        } catch (_) { console.warn('Yerel hatırlatma gösterilemedi.'); }
+        next = new Date(); next.setDate(next.getDate()+1); next.setHours(h,m,0,0);
+        arm();
       };
-      alarmTimers.push(setTimeout(notify, ms));
+      arm();
     });
   });
 }
@@ -751,7 +787,7 @@ function isWebPushCapable() {
     window.isSecureContext &&
     'serviceWorker' in navigator &&
     'PushManager' in window &&
-    'Notification' in window
+    typeof Notification !== 'undefined'
   );
 }
 
@@ -869,7 +905,7 @@ function importData() {
       try {
         const parsed = JSON.parse(reader.result);
         IlacSafety.backup(parsed);
-        const incomingDrugs = parsed.drugs.map(normalizeDrug);
+        const incomingDrugs = parsed.drugs;
         const incomingHistory = parsed.history !== undefined ? parsed.history : loadHistory();
         if (!confirm('Mevcut ilaçlar ve ALDIM kayıtları bu yedekle değiştirilecek. Önce mevcut verilerin yedeği indirilecek. Devam edilsin mi?')) return;
         // Download an undo backup before any local data is overwritten.
