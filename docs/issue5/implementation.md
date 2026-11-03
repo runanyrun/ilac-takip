@@ -33,6 +33,12 @@ Cloudflare API settings and schedules were read directly:
   delete 1. These are static textual counts across the response, not invocations,
   runtime metrics, or proof that list is reached once per minute. Aliases and
   indirect calls are not counted.
+- Build-trigger read returned an undeleted GitHub trigger whose branch includes
+  only `main` and whose deploy command is `npx wrangler deploy`. The API response
+  did not expose a disabled flag. Therefore **Git builds being disabled is not
+  verified**; the existing main-target trigger must be reviewed before any main
+  update. This work publishes only a separate develop-targeted PR head, which does
+  not match that branch filter. No trigger setting was changed.
 - Full-source transfer was rejected by automatic security review because narrow
   VAPID-only redaction could disclose other secrets/private data. No production
   source, subscription endpoint, credentials or patient data is committed here.
