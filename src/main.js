@@ -267,7 +267,7 @@ function renderToday() {
   const nowMins = now.getHours() * 60 + now.getMinutes();
   let items = [];
   drugs.forEach(d => {
-    if (!d.times) return;
+    if (!d.times || (d.date && d.date > today)) return;
     d.times.forEach(t => {
       const key = `${today}_${d.id}_${t}`;
       const [h,m] = t.split(':').map(Number);
@@ -394,7 +394,7 @@ function toggleTaken(key) {
       logHistory(d.id, 'İlaç alındı');
     }
   })) return;
-  renderAll(); scheduleAlarms(); syncPushSchedule();
+  renderAll(); renderHistoryPage(); scheduleAlarms(); syncPushSchedule();
 }
 
 function skipDose(key) {
@@ -404,7 +404,7 @@ function skipDose(key) {
     const d = drugs.find(x => String(x.id) === key.split('_')[1]);
     if (d) logHistory(d.id, 'Doz atlandı');
   })) return;
-  renderAll(); scheduleAlarms(); syncPushSchedule();
+  renderAll(); renderHistoryPage(); scheduleAlarms(); syncPushSchedule();
 }
 
 function renderStats() {
@@ -420,9 +420,15 @@ function renderStats() {
 function renderHistoryPage() {
   const hist = loadHistory();
   const cont = document.getElementById('history-list');
-  if (!hist.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">📋</div><h3>Henüz kayıt yok</h3></div>`; return; }
+  const active = Object.keys(takenLog).filter(k => takenLog[k] && drugs.some(d => String(d.id) === k.split('_')[1])).sort().reverse();
+  const activeHtml = active.map(k => {
+    const d = drugs.find(x => String(x.id) === k.split('_')[1]);
+    const state = takenLog[k] === 'skipped' ? 'Atlandı' : 'Alındı';
+    return `<div class="history-item"><div class="history-text"><strong>${safeDrugText(d.name)}</strong> — ${state}<div class="history-date">${safeDrugText(k.split('_')[0])} · ${safeDrugText(k.split('_').slice(2).join('_'))}</div></div><button type="button" class="alarm-skip-action" onclick="toggleTaken('${safeDrugText(k)}')">GERİ AL</button></div>`;
+  }).join('');
+  if (!hist.length && !active.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">📋</div><h3>Henüz kayıt yok</h3></div>`; return; }
   const colors = {'İlaç alındı':'#2ecc71','İlaç eklendi':'#3498db','İlaç silindi':'#e74c3c','Stok güncellendi':'#f39c12','İlaç iadesi':'#9b59b6'};
-  cont.innerHTML = hist.slice(0,60).map(h => {
+  cont.innerHTML = activeHtml + hist.slice(0,60).map(h => {
     const dt = new Date(h.ts);
     const ds = dt.toLocaleDateString('tr-TR')+' '+dt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
     return `<div class="history-item">
