@@ -9,7 +9,7 @@ const validTime = (value) => typeof value === 'string' && /^([01]\d|2[0-3]):[0-5
 const base64url = bytes => {
   let binary = '';
   for (const b of bytes) binary += String.fromCharCode(b);
-  return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
 };
 const decode64 = value => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - value.length % 4) % 4)), c => c.charCodeAt(0));
 const PUSH_HOSTS = [

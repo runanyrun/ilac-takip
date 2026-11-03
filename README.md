@@ -1,3 +1,9 @@
+> Geliştirme durumu: PR #1/#3/#6 çalışmaları `develop` içinde birleştirildi.
+> Bu dal canlı Worker kaynağıyla henüz eşleşmez; **deploy etmeyin**.
+> Güncel durum, testler ve gerçek engeller: [Issues #4/#5](docs/issue5/implementation.md).
+> `npm test`, `npm run test:browser`, `npm run check:secrets` yerel doğrulamalardır;
+> `npm run check:import` doğrulanmış canlı kaynak gelene kadar hata verir.
+
 # Ilac Takip (MVP)
 
 > Bu kök dizin eski MVP olarak korunmaktadır; canlı Cloudflare Worker kaynakları

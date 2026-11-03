@@ -115,7 +115,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261103-safety1';
+const APP_VERSION = '20261103-develop2';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 

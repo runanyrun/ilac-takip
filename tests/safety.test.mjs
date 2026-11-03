@@ -60,7 +60,8 @@ test('Bozuk diğer anahtar da bütün yazmaları engeller ve ham değer korunur'
 
 test('SW güncellemesi yalnız uygulamaya ait eski cache adlarını siler', async () => {
   const deleted = []; let completion;
-  const { listeners } = serviceWorker({ caches: { keys: async () => ['other-app', 'ilac-takip-vold', 'ilac-takip-v20261103-safety1'],
+  const currentCache = 'ilac-takip-v' + source('sw.js').match(/const SW_VERSION = '([^']+)'/)[1];
+  const { listeners } = serviceWorker({ caches: { keys: async () => ['other-app', 'ilac-takip-vold', currentCache],
     delete: async k => { deleted.push(k); } }, clients: { claim: async () => {} } });
   listeners.get('activate')({ waitUntil: p => { completion = p; } }); await completion;
   assert.deepEqual(deleted, ['ilac-takip-vold']);
@@ -78,4 +79,14 @@ test('SW bildirim hedefi aynı origin ile sınırlıdır', () => {
   const { context } = serviceWorker();
   for (const value of ['https://synthetic.invalid', 'javascript:alert(1)', '//synthetic.invalid'])
     assert.equal(context.safeNotificationUrl(value), 'https://test.invalid/');
+});
+
+
+test('SW never caches API/auth or unrelated navigation, including subpath installations', () => {
+  const { listeners } = serviceWorker({ self: { registration: {scope:'https://test.invalid/ilac-takip/'} } });
+  for(const path of ['/api/backup','/ilac-takip/api/status','/other/index.html']) {
+    let intercepted = false;
+    listeners.get('fetch')({request:{method:'GET',url:'https://test.invalid'+path,mode:'navigate'},respondWith(){intercepted=true;}});
+    assert.equal(intercepted,false);
+  }
 });

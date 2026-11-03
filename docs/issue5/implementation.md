@@ -1,97 +1,111 @@
-# Issue #5 — partial implementation, production blocked
+# Issues #4/#5: integrated development, production blocked
 
-Work is based on `develop` at `67e55a0`. No application runtime, manifest,
-localStorage key, subscription, notification time, namespace or cron was changed.
-No Cloudflare resource was written; no deploy or merge was performed.
+The user's latest instruction authorizes integrating safe work into `develop`
+and preserving all history before deleting extra branches. It does not authorize
+production deployment, changes to `main`, data migration, deletion of app data,
+notification time changes or Cloudflare configuration changes.
 
-## Review of existing work
+## Integration
 
-- Issue #4 is the production acceptance checklist, not evidence of completion.
-- Draft PR #1 (`feature/cloudflare-d1-foundation` → `develop`, head `13a8849`)
-  adds a separate D1 API, enrollment, backup and Web Push experiments. It does not
-  implement the mono Worker's minute scheduler. Its data mapping and multi-write
-  enrollment need integration/concurrency review; do not combine it blindly with
-  the mono Worker or change the installed app's origin to use it.
-- Draft PR #3 (`codex/issue-2-cloudflare-migration-prep` → `develop`, head
-  `9b22c3e`) contains migration scaffolding, MVP safety changes and tests, but no
-  `cloudflare/mono-preview/src/index.js`. Its import script checks inventory
-  hashes; it cannot establish behavior parity, verified provenance or secret-free
-  source on its own. This PR adds an independent stricter gate and no replacement
-  Worker/config. Reconcile gate paths when integrating PR #3.
-- Neither draft was merged. GitHub `main`/`develop` MVP tests cannot certify the
-  active mono Worker. Both open PRs touch MVP files; avoid a combined deployment.
+Original review heads are retained as ancestors of the develop integration:
 
-## Read-only findings, 2026-11-03
+| PR | Original head | Disposition |
+| --- | --- | --- |
+| #1 | `13a88491904e703398befb8e1a058b14804c3dc8` | Full history retained; independent D1 API/test files preserved as development-only; safe frontend history undo retained |
+| #3 | `9b22c3e9f6cf0f86dec6def5970a379043b545fa` | MVP data safeguards, backup/XSS/offline tests and source staging integrated |
+| #6 | `b30b260217aa2425cc4548878b56bae56bab9ee4` | PWA/cost/secret checks and per-tick PUT regression tests integrated |
 
-Cloudflare API settings and schedules were read directly:
+All three are multi-parent merges, not squashes. PR #1 predates the current
+approved layout; its older CSS/FAB/cache-version changes were not allowed to
+revert the newer layout or PR #3 safeguards. Its original versions remain in
+Git history. No separate API is deployed or automatically connected by this work.
+No remote D1 schema or bindings changed. Every removed branch head must pass
+`git merge-base --is-ancestor <head> develop` before deletion. The redundant
+`codex/cloudflare-live-baseline` head is already the original develop/main base.
+`main` remains `67e55a04e39101df2f51e833320d4af23b0a93a5`.
 
-- Worker: `ilac-takip-mono-preview`; compatibility date `2026-10-01`.
-- One returned binding: `PUSH_KV`, type `kv_namespace`.
-- Active schedule: `* * * * *` (unchanged).
-- Content endpoint returned a 48,619-character response. An aggregate-only scan
-  found `scheduled()` and direct `PUSH_KV` call-site counts: list 1, get 8, put 7,
-  delete 1. These are static textual counts across the response, not invocations,
-  runtime metrics, or proof that list is reached once per minute. Aliases and
-  indirect calls are not counted.
-- Build-trigger read returned an undeleted GitHub trigger whose branch includes
-  only `main` and whose deploy command is `npx wrangler deploy`. The API response
-  did not expose a disabled flag. Therefore **Git builds being disabled is not
-  verified**; the existing main-target trigger must be reviewed before any main
-  update. This work publishes only a separate develop-targeted PR head, which does
-  not match that branch filter. No trigger setting was changed.
-- Full-source transfer was rejected by automatic security review because narrow
-  VAPID-only redaction could disclose other secrets/private data. No production
-  source, subscription endpoint, credentials or patient data is committed here.
-- The REST schema exposed no KV analytics endpoint. GraphQL schema discovery did
-  not produce usable operation dimensions through the current connector. Actual
-  operation counts and the quota alert's cause remain unverified.
+## Implemented and tested
 
-## Implemented offline safeguards
+- Both import commands now invoke the same stronger hash/provenance/path/secret
+  gate. Missing real source still blocks readiness; no empty mock is substituted.
+- Root `npm test` includes MVP safeguards, PR #1 API, Issue #5 checks and the local
+  indexed queue. CI runs development tests on `develop`, with no deploy step.
+- `cloudflare/push-queue/` contains a D1-compatible implementation and SQL schema
+  for changed-only plan/device persistence, revision CAS, indexed due work,
+  conditional leases, bounded retries/expiry and version-safe 404/410 cleanup.
+  **It is not wired to the production scheduler.** See its README for caller
+  responsibilities, actual local measurements, capacity and crash-window limits.
+- 1, 2 and 100 owners each underwent 1,440 idle tick tests: 1,440 SELECTs,
+  0 D1 write statements. Repeated unchanged sync writes nothing. KV operations are
+  absent from this module. This is component evidence, not measured live KV usage.
+- PWA manifest ID/start URL/scope and localStorage keys remain unchanged. SW shell
+  cache matching now supports a subpath install and excludes API/auth/unrelated
+  requests. Old application-owned caches are cleaned without deleting other caches
+  or local data. SW/app versions advance together on the development branch only.
+- Browser tests cover CRUD, taken/skip/undo, history, offline, backup round trip,
+  XSS, corrupt storage and quota-error rollback. This is desktop Chromium evidence,
+  not iPhone background delivery certification.
+- PR #1's VAPID base64url escaping bug is fixed and verified with an actual
+  generated ES256 signature, using a synthetic subscription and stubbed fetch.
 
-Run from repository root (Node 24, no packages required):
+## Current PUT incident and live evidence
+
+The latest Issue #5 comment reports Cloudflare's quota email: daily free **KV PUT**
+limit exceeded, with 429 writes. List quota is not the established incident.
+The precise source of excessive writes has not been traced yet.
+
+Read-only Cloudflare API findings on 2026-11-03:
+
+- Worker `ilac-takip-mono-preview`, compatibility date `2026-10-01`, binding
+  `PUSH_KV`, active cron `* * * * *` remain unchanged.
+- Namespace inventory returned `ilac-takip-push-v1`. No keys/values were listed.
+- Content aggregate scan: 48,619-character response; direct call sites list 1,
+  get 8, put 7, delete 1; scheduled marker present. These are lexical counts, not
+  dynamic execution counts, call graph analysis or confirmed heartbeat frequency.
+- Build-trigger read still returns an undeleted trigger matching only `main`.
+  Disabled status was not exposed. Do not update main or assume builds are off.
+  Develop does not match that filter. No trigger setting was written.
+- Full raw source return was rejected by automatic security review because narrow
+  VAPID redaction could expose other secrets/private data. Only nonsecret summaries
+  were returned subsequently. No raw Worker source, endpoints, keys or patient data
+  is committed here.
+- The attempted aggregate GraphQL operation query was rejected with `Rate limiter
+  budget depleted` and a 5-minute retry instruction. No production operation series
+  was obtained; an account quota email is incident evidence, not per-call telemetry.
+
+## Verification and remaining gates
+
+Run from root with Node 24:
 
 ```sh
-node --test tests/issue5/*.test.mjs
-git ls-files -z --cached --others --exclude-standard | node scripts/issue5/check.mjs
-node scripts/issue5/source-gate.mjs
+npm ci --ignore-scripts
+npm test
+npm run check:secrets
+npm run test:browser
+npm run check:import
 ```
 
-The last command intentionally exits 1 while reviewed source is absent. CI runs
-unit tests/pattern scan and the source gate in separate jobs, with read-only repo
-permissions and no deploy. The draft's source-gate job must remain blocked, not
-be converted into a passing skipped check. Configure required status checks via
-repository settings before treating CI as an enforced merge barrier; this PR
-does not change account settings. Pattern detection is defense in depth, not a
-complete secret scanner or a substitute for manual review. A dedicated full-history
-secret scan should also be required before source publication.
+Browser tests require Playwright Chromium; local runs may use
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium`. The source command intentionally
+exits 1 until reviewed source exists. CI source-import-gate stays separate and
+blocked; do not rename this failure to a pass or remove skipped live scenarios.
+Pattern scanning is defense in depth, not a complete secret/history audit.
 
-The gate expects `cloudflare/mono-preview/import-manifest.json` with `worker`,
-`deploymentId`, ISO `exportedAt`, `compatibilityDate`, `cron`, and `files` entries
-containing `path`/SHA-256. Preserve the active date/cron. Inventory only `src/` and
-`public/`, including `src/index.js`; reject traversal, symlinks, duplicates,
-unlisted source, changed hashes and recognized sensitive patterns. A successful
-hash check explicitly does not assert production readiness. Obtain deployment
-identity and a private raw-source hash from the authorized export process; retain
-raw source in approved private storage, review all literals and bindings, then
-publish only sanitized code plus separate sanitized-file hashes. Never fabricate
-an import manifest or use an empty mock as production source.
+Actual blockers for completing #4/#5:
 
-## Required follow-up and actual blockers
+1. A private, safely reviewed export of the deployed Worker with deployment ID,
+   raw-source hash, all modules and sanitized-file inventory. Inspect each of the
+   7 PUT sites and its call graph; eliminate per-minute metadata/heartbeat writes
+   and unchanged sync writes, handle TTL renewal without silently expiring a live
+   subscription, and never return success when persistence fails. The local queue
+   needs a real authenticated API/scheduler mapping, unchanged timezone/DST policy,
+   Web Push sender, migration/reconciliation and rollback testing before adoption.
+2. Aggregated production operation counts by namespace/type/error/window, including
+   sampling/truncation and the account's other KV usage, to verify the write source
+   and the post-integration operation budget. Do not enumerate keys for telemetry.
+3. Real installed iPhone testing with verified backup/restore, unchanged times,
+   offline/update and actual background receipt. Never remove an old installation
+   until the user has verified the backup and explicitly confirmed removal.
 
-1. Safely export/review the real Worker in private storage without displaying raw
-   source. Obtain deployment ID, source hash, all modules and nonsecret settings.
-   Secret values remain bindings; redact endpoints and personal records before
-   publication. Current aggregate access is insufficient to implement a truthful
-   change to the real `scheduled()` handler.
-2. Obtain **aggregated** KV operation metrics with authorized Account Analytics
-   access or dashboard export: namespace, operation type, counts, errors, sampling,
-   UTC start/end. Use the current quota day and a complete prior day. Include all
-   namespaces when comparing account-wide limits. Never export keys or values.
-3. Integrate and test the indexed scheduler against the acquired source and API
-   contract (see scheduler-design.md). Do not ship a stand-alone substitute.
-4. Verify backup round trip and background push on a real installed iPhone PWA.
-   A provider 201 is acceptance, not proof of handset delivery. Device access is
-   absent; install/removal and data migration cannot be certified here.
-
-These blockers leave Issue #5 open. Safe development checks are implemented;
-minute-accurate production scheduler replacement and measured costs are pending.
+These issues remain open. Development integration and branch cleanup do not mean
+that the active application's PUT incident or production readiness is solved.

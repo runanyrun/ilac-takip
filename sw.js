@@ -1,4 +1,4 @@
-const SW_VERSION = '20261103-safety1';
+const SW_VERSION = '20261103-develop2';
 const CACHE = `ilac-takip-v${SW_VERSION}`;
 const APP_SHELL = [
   './',
@@ -13,7 +13,8 @@ const APP_SHELL = [
   './src/safety.js',
   `./src/safety.js?v=${SW_VERSION}`,
 ];
-const APP_SHELL_PATHS = new Set(['/index.html', '/manifest.json', '/src/styles.css', '/src/main.js', '/src/safety.js']);
+const SCOPE_URL = new URL(self.registration?.scope || '/', self.location.origin);
+const APP_SHELL_PATHS = new Set(['./', './index.html', './manifest.json', './src/styles.css', './src/main.js', './src/safety.js'].map(path => new URL(path, SCOPE_URL).pathname));
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
@@ -37,7 +38,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin || !APP_SHELL_PATHS.has(url.pathname)) return;
+  // API/auth/push requests and unrelated paths must never enter shell caches.
 
   if (e.request.mode === 'navigate') {
     e.respondWith(networkFirst(e.request, './index.html'));
@@ -49,7 +51,6 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  e.respondWith(staleWhileRevalidate(e.request));
 });
 
 async function networkFirst(request, fallbackUrl) {
@@ -69,22 +70,6 @@ async function networkFirst(request, fallbackUrl) {
     if (cached) return cached;
     return Response.error();
   }
-}
-
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE);
-  const cached = await cache.match(request);
-  const networkFetch = fetch(request).then(response => {
-    if (response && response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  }).catch(() => null);
-
-  if (cached) return cached;
-  const networkResponse = await networkFetch;
-  if (networkResponse) return networkResponse;
-  return Response.error();
 }
 
 self.addEventListener('push', e => {

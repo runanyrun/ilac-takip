@@ -6,7 +6,7 @@ on:
       - '.github/workflows/worker-tests.yml'
   push:
     branches:
-      - 'feature/cloudflare-d1-foundation'
+      - 'develop'
     paths:
       - 'cloudflare/**'
       - '.github/workflows/worker-tests.yml'
@@ -19,5 +19,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - run: node --test cloudflare/worker.test.mjs

@@ -2,7 +2,7 @@
 
 ## PWA audit and user-verified migration
 
-No manifest or service worker identity was changed in this PR. MVP metadata is
+The development integration preserves manifest and service worker registration identity. MVP metadata is
 `id=/ilac-takip`, `start_url=./index.html`, `scope=./`; this does not establish the
 live Worker's identity. Inventory each installed icon's actual origin, resolved
 manifest ID/start URL/scope, SW script URL/scope and cache version privately.
@@ -15,9 +15,8 @@ Deploy only after the separate production approval/rollback process. Cache new
 shell resources completely before activation; use versioned **application-owned**
 cache names and delete only obsolete caches in that namespace. Do not clear
 localStorage, IndexedDB or subscriptions on SW upgrade. Do not cache API/auth/push
-responses. Audit actual live SW behavior before making any cache change; the MVP
-SW currently deletes unrelated cache names on activation and is not approved as
-a production replacement.
+responses. Audit actual live SW behavior before making any cache change; the integrated MVP SW deletes only obsolete application-owned cache names and is
+not approved as a production replacement.
 
 Different origins cannot automatically read each other's localStorage. An ID
 change on the same origin can also create a second install; preserve the old ID
@@ -57,12 +56,12 @@ include other namespaces. These are distinct operation budgets.
 
 Let U=users, D=devices/user, R=reminders/user/day, P=list pages/tick,
 G=keys read/device/tick, W=writes/delivery including retries,
-E=expired devices/day and S=schedule update key writes/day.
+E=expired devices/day, S=schedule update key writes/day and H=unconditional writes/tick.
 
 - Ticks/day = 1,440, unchanged.
 - Delivery attempts modeled = U × D × R (increase W/read assumptions for retry work).
 - KV list = 1,440 × P; KV read = 1,440 × U × D × G.
-- KV write = U × D × R × W + S; KV delete = E.
+- KV write = 1,440 × H + U × D × R × W + S; KV delete = E.
 
 This model deliberately exposes assumptions, not a claim about the live code.
 Pagination, other API reads/writes, failed requests, retries, dedupe key writes,
@@ -75,7 +74,8 @@ retention deletes and background activity need their own measured additions.
 | 100 users, 2 devices/user | 288,000 | 600 | 1,440 |
 
 Even zero users would exceed the list limit if a single list executes each tick.
-This conditional statement is not a measured root cause. The D1 indexed design
+The incident email establishes PUT exhaustion; per-tick PUT frequency is still
+unverified. One unconditional PUT each tick would similarly cost 1,440 writes/day. The D1 indexed design
 has zero scheduler KV operations only after integration removes all relevant KV
 calls; D1 reads/writes, storage, retries and Worker execution have their own cost
 budgets and must be measured. Setting model parameters to zero does not prove it.

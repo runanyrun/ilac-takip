@@ -12,3 +12,6 @@ playwright-report/
 private-transfer/
 ilac-yedek-*.json
 ilac-geri-al-*.json
+
+# Local snapshots, dependency cache and scratch results
+work/

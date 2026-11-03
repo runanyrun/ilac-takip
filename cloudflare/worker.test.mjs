@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { webcrypto } from 'node:crypto';
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 const source = await readFile(new URL('./worker.js', import.meta.url), 'utf8');
-const { default: worker } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+const { default: worker, sendEmptyWebPush } = await import('data:text/javascript;base64,' + Buffer.from(source + '\nexport { sendEmptyWebPush };').toString('base64'));
 const sha = async value => Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))).toString('hex');
 
 function environment() {
@@ -117,4 +117,23 @@ test('VAPID test endpoint fails closed until signing secrets are configured', as
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, 'vapid_not_configured');
   assert.equal((await call(env, null, 'POST', '/api/push/test')).status, 401);
+});
+
+
+test('Web Push VAPID signature is valid base64url and sends no medical payload', async t => {
+  const pair = await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  const privateKey = await crypto.subtle.exportKey('jwk',pair.privateKey);
+  const pub = new Uint8Array(await crypto.subtle.exportKey('raw',pair.publicKey));
+  const env={VAPID_PRIVATE_JWK:JSON.stringify(privateKey),VAPID_PUBLIC_KEY:Buffer.from(pub).toString('base64url'),VAPID_CONTACT:'mailto:synthetic@example.invalid'};
+  const original=globalThis.fetch;
+  let sent;
+  globalThis.fetch=async(url,options)=>{sent={url,options};return new Response('',{status:201});};
+  t.after(()=>{globalThis.fetch=original;});
+  await sendEmptyWebPush({endpoint:'https://web.push.apple.com/synthetic'},env);
+  const jwt=sent.options.headers.authorization.match(/^vapid t=([^,]+)/)[1];
+  assert.match(jwt,/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+  const [header,payload,signature]=jwt.split('.');
+  assert.equal(JSON.parse(Buffer.from(payload,'base64url')).aud,'https://web.push.apple.com');
+  assert.equal(await crypto.subtle.verify({name:'ECDSA',hash:'SHA-256'},pair.publicKey,Buffer.from(signature,'base64url'),new TextEncoder().encode(header+'.'+payload)),true);
+  assert.equal(sent.options.body,undefined);
 });

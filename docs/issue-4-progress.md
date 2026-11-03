@@ -1,3 +1,5 @@
+> Bu dosya önceki PR #3 aşamasının kaydıdır. Güncel entegrasyon/test durumu: [Issue #5 uygulaması](issue5/implementation.md). Canlıya dağıtım yapılmadı.
+
 # Issue #4 — PR #3 üzerinde veri koruma ve güvenlik
 
 Bu çalışma PR #3'ün `1c62d53` commit'inden devam eder; aynı dal kullanılır.
