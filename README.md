@@ -1,5 +1,10 @@
 # Ilac Takip (MVP)
 
+> Bu kök dizin eski MVP olarak korunmaktadır; canlı Cloudflare Worker kaynakları
+> ile aynı sürüm kabul edilmemelidir. Dağıtım yapılmayan geçiş hazırlığı ve kaynak
+> aktarım adımları: [Cloudflare geçiş planı](docs/cloudflare-migration.md).
+> Yeni kaynak alanı: `cloudflare/mono-preview/`. Otomatik kontroller: `npm test`.
+
 Basit ve hizli bir "Ilac Takip" PWA (Progressive Web App).
 Amac: ilaclari eklemek, gunluk alim saatlerini takip etmek, stok dusumunu izlemek ve bildirim almak.
 

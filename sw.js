@@ -1,4 +1,4 @@
-const SW_VERSION = '20260420';
+const SW_VERSION = '20261103-safety1';
 const CACHE = `ilac-takip-v${SW_VERSION}`;
 const APP_SHELL = [
   './',
@@ -10,21 +10,26 @@ const APP_SHELL = [
   `./src/styles.css?v=${SW_VERSION}`,
   './src/main.js',
   `./src/main.js?v=${SW_VERSION}`,
+  './src/safety.js',
+  `./src/safety.js?v=${SW_VERSION}`,
 ];
-const APP_SHELL_PATHS = new Set(['/', '/index.html', '/manifest.json', '/src/styles.css', '/src/main.js']);
+const APP_SHELL_PATHS = new Set(['/index.html', '/manifest.json', '/src/styles.css', '/src/main.js', '/src/safety.js']);
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const c = await caches.open(CACHE);
     await c.addAll(APP_SHELL);
   })());
-  self.skipWaiting();
+});
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'ACTIVATE_UPDATE') self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)));
+    await Promise.all(keys.filter(key => key.startsWith('ilac-takip-v') && key !== CACHE).map(key => caches.delete(key)));
     await clients.claim();
   })());
 });
@@ -53,11 +58,14 @@ async function networkFirst(request, fallbackUrl) {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.ok) {
       await cache.put(request, networkResponse.clone());
+    } else {
+      const cached = await cache.match(request) || (fallbackUrl ? await cache.match(fallbackUrl) : null);
+      if (cached) return cached;
     }
     return networkResponse;
   } catch (_) {
-    const cached = (await cache.match(request, { ignoreSearch: true })) ||
-      (fallbackUrl ? await cache.match(fallbackUrl, { ignoreSearch: true }) : null);
+    const cached = (await cache.match(request)) ||
+      (fallbackUrl ? await cache.match(fallbackUrl) : null);
     if (cached) return cached;
     return Response.error();
   }
@@ -114,6 +122,15 @@ self.addEventListener('push', e => {
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const targetUrl = (e.notification.data && e.notification.data.url) || './';
+  const targetUrl = safeNotificationUrl(e.notification.data && e.notification.data.url);
   e.waitUntil(clients.openWindow(targetUrl));
 });
+
+function safeNotificationUrl(value) {
+  const base = self.registration?.scope || self.location.origin + '/';
+  try {
+    const url = new URL(value || './', base);
+    if (url.origin === self.location.origin && /^https?:$/.test(url.protocol)) return url.href;
+  } catch (_) {}
+  return base;
+}
