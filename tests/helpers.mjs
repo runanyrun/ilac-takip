@@ -7,7 +7,6 @@ export function functions(start, end, globals) {
   const a = text.indexOf(start), b = text.indexOf(end, a);
   if (a < 0 || b < 0) throw new Error('MVP test sınırları bulunamadı');
   const context = vm.createContext(globals);
-  vm.runInContext(source('src/safety.js'), context);
   vm.runInContext(text.slice(a, b), context);
   return context;
 }
