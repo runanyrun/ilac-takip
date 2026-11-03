@@ -74,3 +74,17 @@ test('scan detects synthetic private material without printing values', () => {
   assert.equal(sensitive('VAPID_PRIVATE_KEY = env.VAPID_PRIVATE_KEY'),false);
   assert.equal(sensitive('https://web.push.apple.com/'+ 'a'.repeat(30)),true);
 });
+
+test('one KV put per minute exceeds the daily free write limit even with zero users', () => {
+  for (const users of [0, 1, 2, 100]) {
+    const result = estimateDaily({ users, devicesPerUser: 1, remindersPerUser: 2, listPagesPerTick: 0, readsPerDevicePerTick: 0, writesPerTick: 1 });
+    assert.equal(result.operations.write, 1440 + users * 2);
+    assert.ok(result.exceeds.includes('write'));
+  }
+});
+
+test('no per-tick writes avoids baseline KV put quota exhaustion', () => {
+  const result = estimateDaily({ users: 2, devicesPerUser: 1, remindersPerUser: 2, listPagesPerTick: 0, readsPerDevicePerTick: 0, writesPerTick: 0 });
+  assert.equal(result.operations.write, 4);
+  assert.ok(!result.exceeds.includes('write'));
+});
