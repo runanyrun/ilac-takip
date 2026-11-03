@@ -140,3 +140,20 @@ Build hook da yetki sistemi değildir. Cloudflare Builds production branch bağl
 bu PR kapsamında kurulmaz. Üretim deploy'u ve ilk cron etkinleştirmesi sonraki,
 açıkça yetkilendirilmiş işin konusu olmalıdır. Öncesinde canlı sürüme geri dönüş
 ve veri şeması geriye uyumluluğu kanıtlanmalıdır.
+
+## 2026-11-03 — Cloudflare API üzerinden doğrulanan salt-okunur envanter
+
+Bu bölüm canlı Cloudflare hesabındaki **okuma** isteklerine dayanır; kaynak dosyası henüz depoya aktarılmamıştır.
+
+- Worker: `ilac-takip-mono-preview`
+- Compatibility date: `2026-10-01`
+- Compatibility flags: `[]`
+- Usage model: `standard`
+- Binding: `PUSH_KV` (`kv_namespace`); namespace ID'si ve içeriği burada yayımlanmaz.
+- Cron: `* * * * *` (her dakika), Cloudflare schedules API ile doğrulandı.
+- Workers Scripts API ile canlı kaynak yaklaşık 48.619 karakterlik multipart yanıt olarak okunabiliyor. Yanıtta `async fetch(`, `async scheduled(` ve `/api/push/sync` izleri doğrulandı.
+- Bu kontroller **kaynak aktarımı, güvenlik taraması veya canlı cihaz bildirimi testi değildir**. Kaynakta sır bulunmadığı sonucu çıkarılamaz.
+
+### Aktarım kapısı
+
+Canlı kaynak public depoya eklenmeden önce yerel/güvenli bir ortamda VAPID özel anahtarları, gömülü tokenlar, abonelik endpointleri ve kişisel veri açısından incelenmeli. Sırlar koddan ayrılıp Cloudflare secret binding olarak yönetilmeli. Kaynak hash/manifest ile belgelenmeden `check:import` başarılı kabul edilmemeli. Canlı Worker'a otomatik veya manuel deploy yapılmamalı.
