@@ -1,0 +1,94 @@
+{
+  "observations": [
+    {
+      "start": "2026-11-02T00:00:00Z",
+      "end": "2026-11-03T17:39:47.290Z",
+      "limit": 100,
+      "scope": "production-namespace-write-only",
+      "response": {
+        "data": {
+          "viewer": {
+            "accounts": [
+              {
+                "kvOperationsAdaptiveGroups": [
+                  {
+                    "dimensions": {
+                      "date": "2026-11-03",
+                      "responseStatusCode": 200
+                    },
+                    "sum": {
+                      "requests": 1066
+                    }
+                  },
+                  {
+                    "dimensions": {
+                      "date": "2026-11-02",
+                      "responseStatusCode": 200
+                    },
+                    "sum": {
+                      "requests": 305
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "errors": null
+      },
+      "samplingMetadata": "not-requested-in-first-query"
+    },
+    {
+      "start": "2026-11-02T00:00:00Z",
+      "end": "2026-11-03T17:39:47.290Z",
+      "limit": 100,
+      "scope": "production-namespace-write-only",
+      "response": {
+        "data": {
+          "viewer": {
+            "accounts": [
+              {
+                "kvOperationsAdaptiveGroups": [
+                  {
+                    "avg": {
+                      "sampleInterval": 1
+                    },
+                    "dimensions": {
+                      "date": "2026-11-03",
+                      "responseStatusCode": 200
+                    },
+                    "sum": {
+                      "requests": 1068
+                    }
+                  },
+                  {
+                    "avg": {
+                      "sampleInterval": 1
+                    },
+                    "dimensions": {
+                      "date": "2026-11-02",
+                      "responseStatusCode": 200
+                    },
+                    "sum": {
+                      "requests": 305
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "errors": null
+      }
+    }
+  ],
+  "interpretation": {
+    "dataset": "adaptive",
+    "sampleInterval": "1 in each returned group of the second query",
+    "status429": "no-row-returned; not-proof-of-zero-binding-failures",
+    "currentDay": "partial-day-only",
+    "billingCounter": "not-a-billing-counter",
+    "ingestion": "same cutoff returned 1066 then 1068; analytics can change as data arrives",
+    "truncation": "2 groups returned below limit 100"
+  }
+}

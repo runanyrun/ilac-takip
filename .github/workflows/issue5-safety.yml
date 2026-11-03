@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: npm ci --ignore-scripts
       - run: node --test tests/issue5/*.test.mjs
       - run: git ls-files -z | node scripts/issue5/check.mjs
   source-import-gate:

@@ -1,3 +1,9 @@
+> Latest follow-up: [private PUT audit and aggregate metrics](put-audit-2026-11-03.md).
+> Seven sites are now classified without transferring source; a per-tick metadata
+> write path is identified. Aggregate telemetry is available again. The historical
+> rate-limit/source findings below describe the earlier integration stage.
+> No real-Worker patch, deployment or approved source import has been performed.
+
 # Issues #4/#5: integrated development, production blocked
 
 The user's latest instruction authorizes integrating safe work into `develop`

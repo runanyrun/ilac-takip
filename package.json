@@ -12,6 +12,7 @@
     "check:secrets": "git ls-files -z --cached --others --exclude-standard | node scripts/issue5/check.mjs"
   },
   "devDependencies": {
+    "acorn": "8.15.0",
     "playwright": "1.62.1"
   }
 }
