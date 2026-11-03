@@ -379,20 +379,32 @@ function alarmHTML(i, variant='list') {
   </div>`;
 }
 
+function undoDose(key) {
+  // History actions only remove an existing dose; a stale button must never take it again.
+  if (!Object.hasOwn(takenLog, key)) return;
+  const storedDrugs = loadDrugs();
+  const d = storedDrugs.find(x => String(x.id) === key.split('_')[1]);
+  if (!d || !confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
+  if (!mutateRecords(() => {
+    // Preserve other records exactly, including legacy and unknown fields.
+    drugs = storedDrugs;
+    const wasTaken = takenLog[key] !== 'skipped';
+    if (wasTaken) d.stock += 1;
+    delete takenLog[key];
+    logHistory(d.id, wasTaken ? 'İlaç iadesi' : 'Atlama geri alındı', key);
+  })) return;
+  renderAll(); renderHistoryPage(); scheduleAlarms(); syncPushSchedule();
+}
+
 function toggleTaken(key) {
+  if (Object.hasOwn(takenLog, key)) return undoDose(key);
   const d = drugs.find(x => String(x.id) === key.split('_')[1]);
   if (!d) return;
-  if (takenLog[key] && !confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
   if (!mutateRecords(() => {
-    if (takenLog[key]) {
-      if (takenLog[key] !== 'skipped') { d.stock += 1; logHistory(d.id, 'İlaç iadesi'); }
-      delete takenLog[key];
-    } else {
-      if (d.stock <= 0) throw new Error('Stok yok. Önce stok bilgisini güncelleyin.');
-      d.stock -= 1;
-      takenLog[key] = new Date().toISOString();
-      logHistory(d.id, 'İlaç alındı');
-    }
+    if (d.stock <= 0) throw new Error('Stok yok. Önce stok bilgisini güncelleyin.');
+    d.stock -= 1;
+    takenLog[key] = new Date().toISOString();
+    logHistory(d.id, 'İlaç alındı', key);
   })) return;
   renderAll(); renderHistoryPage(); scheduleAlarms(); syncPushSchedule();
 }
@@ -402,7 +414,7 @@ function skipDose(key) {
   if (!mutateRecords(() => {
     takenLog[key] = 'skipped';
     const d = drugs.find(x => String(x.id) === key.split('_')[1]);
-    if (d) logHistory(d.id, 'Doz atlandı');
+    if (d) logHistory(d.id, 'Doz atlandı', key);
   })) return;
   renderAll(); renderHistoryPage(); scheduleAlarms(); syncPushSchedule();
 }
@@ -420,29 +432,47 @@ function renderStats() {
 function renderHistoryPage() {
   const hist = loadHistory();
   const cont = document.getElementById('history-list');
-  const active = Object.keys(takenLog).filter(k => takenLog[k] && drugs.some(d => String(d.id) === k.split('_')[1])).sort().reverse();
-  const activeHtml = active.map(k => {
-    const d = drugs.find(x => String(x.id) === k.split('_')[1]);
-    const state = takenLog[k] === 'skipped' ? 'Atlandı' : 'Alındı';
-    return `<div class="history-item"><div class="history-text"><strong>${safeDrugText(d.name)}</strong> — ${state}<div class="history-date">${safeDrugText(k.split('_')[0])} · ${safeDrugText(k.split('_').slice(2).join('_'))}</div></div><button type="button" class="alarm-skip-action" onclick="toggleTaken('${safeDrugText(k)}')">GERİ AL</button></div>`;
-  }).join('');
-  if (!hist.length && !active.length) { cont.innerHTML = `<div class="empty-state"><div class="emoji">📋</div><h3>Henüz kayıt yok</h3></div>`; return; }
+  const active = Object.keys(takenLog).filter(k => drugs.some(d => String(d.id) === k.split('_')[1]));
+  const remaining = new Set(active);
   const colors = {'İlaç alındı':'#2ecc71','İlaç eklendi':'#3498db','İlaç silindi':'#e74c3c','Stok güncellendi':'#f39c12','İlaç iadesi':'#9b59b6'};
-  cont.innerHTML = activeHtml + hist.slice(0,60).map(h => {
+  const undoButton = key => key ? `<button type="button" class="alarm-skip-action" data-history-dose-key="${safeDrugText(key)}" onclick="undoDose('${safeDrugText(key)}')">GERİ AL</button>` : '';
+  const rows = hist.slice(0,60).map(h => {
+    const wasTaken = h.action === 'İlaç alındı';
+    const wasSkipped = h.action === 'Doz atlandı';
+    // New records have an exact occurrence key. Legacy taken events can be
+    // linked only by an exact timestamp; do not guess from date/drug alone.
+    const key = (wasTaken || wasSkipped) ? active.find(k => remaining.has(k) &&
+      String(h.drugId) === k.split('_')[1] &&
+      (wasSkipped ? takenLog[k] === 'skipped' : takenLog[k] !== 'skipped') &&
+      (h.doseKey ? h.doseKey === k : wasTaken && takenLog[k] === h.ts)) : null;
+    if (key) remaining.delete(key);
     const dt = new Date(h.ts);
     const ds = dt.toLocaleDateString('tr-TR')+' '+dt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
     return `<div class="history-item">
       <div class="history-dot" style="background:${colors[h.action]||'#7a8fa0'}"></div>
       <div class="history-text"><strong>${safeDrugText(h.name)}</strong> — ${safeDrugText(h.action)}</div>
       <div class="history-date">${ds}</div>
+      ${undoButton(key)}
     </div>`;
-  }).join('');
+  });
+  // Keep undo available for old dose logs without an unambiguous history event.
+  for (const key of [...remaining].sort().reverse()) {
+    const d = drugs.find(x => String(x.id) === key.split('_')[1]);
+    const skipped = takenLog[key] === 'skipped';
+    rows.push(`<div class="history-item">
+      <div class="history-dot" style="background:${skipped ? '#7a8fa0' : colors['İlaç alındı']}"></div>
+      <div class="history-text"><strong>${safeDrugText(d.name)}</strong> — ${skipped ? 'Atlandı' : 'Alındı'}</div>
+      <div class="history-date">${safeDrugText(key.split('_')[0])} · ${safeDrugText(key.split('_').slice(2).join('_'))}</div>
+      ${undoButton(key)}
+    </div>`);
+  }
+  cont.innerHTML = rows.length ? rows.join('') : `<div class="empty-state"><div class="emoji">📋</div><h3>Henüz kayıt yok</h3></div>`;
 }
 
-function logHistory(drugId, action) {
+function logHistory(drugId, action, doseKey) {
   const d = drugs.find(x=>x.id==drugId);
   const hist = mutationHistory || loadHistory();
-  hist.unshift({ drugId, name:d?d.name:'?', action, ts:new Date().toISOString() });
+  hist.unshift({ drugId, name:d?d.name:'?', action, ts:new Date().toISOString(), ...(doseKey ? { doseKey } : {}) });
   if (mutationHistory) mutationHistory = hist.slice(0,200);
   else saveHistory(hist.slice(0,200));
 }
