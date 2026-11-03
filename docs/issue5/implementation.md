@@ -1,3 +1,7 @@
+> P4 follow-up: [private candidate patch and acceptance matrix](p4-private-patch-plan.md).
+> An offline, hash-pinned single-statement remover is prepared; only synthetic
+> fixtures have been patched/tested. Actual private-source validation is pending.
+
 > Latest follow-up: [private PUT audit and aggregate metrics](put-audit-2026-11-03.md).
 > Seven sites are now classified without transferring source; a per-tick metadata
 > write path is identified. Aggregate telemetry is available again. The historical
