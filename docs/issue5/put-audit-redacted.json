@@ -1,0 +1,230 @@
+{
+  "status": "static-only",
+  "sourceWithheld": true,
+  "modules": [
+    {
+      "deleteSites": [
+        {
+          "functionId": "M1F8",
+          "reachableFrom": {
+            "scheduled": true,
+            "fetch": false
+          },
+          "guardedHttpStatuses": [
+            404,
+            410
+          ]
+        }
+      ],
+      "module": "M1",
+      "directPutSites": 7,
+      "sites": [
+        {
+          "site": "M1P1",
+          "functionId": "M1F1",
+          "functionName": "fetch",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": false,
+            "fetch": true
+          },
+          "keyClass": "unclassified",
+          "routeClasses": [
+            "test"
+          ],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [
+            500
+          ],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [],
+          "priorControlExitCount": 3,
+          "loopDepth": 0,
+          "conditionalAncestorCount": 1,
+          "awaited": true,
+          "storedReadsInFunction": 5,
+          "hasExpirationOption": true,
+          "errorHandling": "catch-returns-review-status",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        },
+        {
+          "site": "M1P2",
+          "functionId": "M1F1",
+          "functionName": "fetch",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": false,
+            "fetch": true
+          },
+          "keyClass": "unclassified",
+          "routeClasses": [
+            "test"
+          ],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [
+            500
+          ],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [
+            "status-state"
+          ],
+          "priorControlExitCount": 4,
+          "loopDepth": 0,
+          "conditionalAncestorCount": 1,
+          "awaited": true,
+          "storedReadsInFunction": 5,
+          "hasExpirationOption": true,
+          "errorHandling": "catch-returns-review-status",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        },
+        {
+          "site": "M1P3",
+          "functionId": "M1F1",
+          "functionName": "fetch",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": false,
+            "fetch": true
+          },
+          "keyClass": "subscription-state",
+          "routeClasses": [
+            "state-sync"
+          ],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [
+            400
+          ],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [],
+          "priorControlExitCount": 12,
+          "loopDepth": 0,
+          "conditionalAncestorCount": 1,
+          "awaited": true,
+          "storedReadsInFunction": 5,
+          "hasExpirationOption": true,
+          "errorHandling": "catch-returns-review-status",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        },
+        {
+          "site": "M1P4",
+          "functionId": "M1F8",
+          "functionName": "redacted-helper",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": true,
+            "fetch": false
+          },
+          "keyClass": "scheduler-metadata",
+          "routeClasses": [],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [],
+          "priorControlExitCount": 0,
+          "loopDepth": 0,
+          "conditionalAncestorCount": 0,
+          "awaited": true,
+          "storedReadsInFunction": 3,
+          "hasExpirationOption": true,
+          "errorHandling": "not-locally-caught",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        },
+        {
+          "site": "M1P5",
+          "functionId": "M1F8",
+          "functionName": "redacted-helper",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": true,
+            "fetch": false
+          },
+          "keyClass": "unclassified",
+          "routeClasses": [],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [
+            "status-state"
+          ],
+          "priorControlExitCount": 4,
+          "loopDepth": 3,
+          "conditionalAncestorCount": 0,
+          "awaited": true,
+          "storedReadsInFunction": 3,
+          "hasExpirationOption": true,
+          "errorHandling": "catch-continues",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        },
+        {
+          "site": "M1P6",
+          "functionId": "M1F8",
+          "functionName": "redacted-helper",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": true,
+            "fetch": false
+          },
+          "keyClass": "delivery-state",
+          "routeClasses": [],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [],
+          "priorControlExitCount": 4,
+          "loopDepth": 3,
+          "conditionalAncestorCount": 1,
+          "awaited": true,
+          "storedReadsInFunction": 3,
+          "hasExpirationOption": true,
+          "errorHandling": "catch-continues",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        },
+        {
+          "site": "M1P7",
+          "functionId": "M1F8",
+          "functionName": "redacted-helper",
+          "line": 1,
+          "reachableFrom": {
+            "scheduled": true,
+            "fetch": false
+          },
+          "keyClass": "unclassified",
+          "routeClasses": [],
+          "guardedHttpStatuses": [],
+          "catchReturnStatuses": [],
+          "catchReturnsExplicitSuccess": false,
+          "functionMutatesStateFields": [],
+          "valueRoles": [],
+          "priorControlExitCount": 4,
+          "loopDepth": 2,
+          "conditionalAncestorCount": 0,
+          "awaited": true,
+          "storedReadsInFunction": 3,
+          "hasExpirationOption": true,
+          "errorHandling": "not-locally-caught",
+          "sameDataWriteGuard": "not-proven-by-this-analysis"
+        }
+      ],
+      "entrypoints": [
+        {
+          "name": "fetch",
+          "directPutSites": 3,
+          "reachablePutSites": 3
+        },
+        {
+          "name": "scheduled",
+          "directPutSites": 0,
+          "reachablePutSites": 4
+        }
+      ],
+      "retryAfterReferenced": false,
+      "unresolvedCallGraph": true
+    }
+  ]
+}

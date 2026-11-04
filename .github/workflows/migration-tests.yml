@@ -1,0 +1,35 @@
+name: Migration preparation tests
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: npm test
+        if: matrix.browser == 'chromium'
+      - run: npm run check:secrets
+        if: matrix.browser == 'chromium'
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run test:browser
+        env:
+          ILAC_BROWSER_ENGINE: ${{ matrix.browser }}
+      # Deliberately no Cloudflare credentials, Wrangler or deploy step.

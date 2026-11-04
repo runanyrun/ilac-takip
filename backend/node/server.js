@@ -1,10 +1,24 @@
 import express from 'express';
 import cors from 'cors';
 import webpush from 'web-push';
+import { timingSafeEqual } from 'node:crypto';
 
 const app = express();
-app.use(cors());
+// Single-admin local demo only. This is not the live Worker or a multi-user API.
+app.use(cors({ origin: false }));
 app.use(express.json({ limit: '1mb' }));
+const demoToken = process.env.PUSH_DEMO_TOKEN;
+if (!demoToken || demoToken.length < 32) {
+  console.error('PUSH_DEMO_TOKEN gerekli (en az 32 karakter); demo sunucusu başlatılmadı.');
+  process.exit(1);
+}
+app.use((req, res, next) => {
+  const actual = Buffer.from(req.headers.authorization || '');
+  const expected = Buffer.from(`Bearer ${demoToken}`);
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected))
+    return res.status(401).json({ error: 'Yetkisiz istek' });
+  next();
+});
 
 const PORT = process.env.PORT || 8787;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT;
@@ -115,6 +129,6 @@ app.post('/api/push/dispatch-due', async (_req, res) => {
   res.json({ ok: true, nowTime, sent: sendJobs.length, results: results.map(r => r.status) });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '127.0.0.1', () => {
   console.log(`Push server running on http://localhost:${PORT}`);
 });

@@ -1,0 +1,18 @@
+{
+  "name": "ilac-takip-development",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test --test-isolation=none tests/*.test.mjs tests/issue5/*.test.mjs cloudflare/worker.test.mjs",
+    "test:browser": "node --test --test-isolation=none tests/browser/*.test.cjs",
+    "check:import": "node scripts/verify-worker-import.mjs",
+    "check:secrets": "git ls-files -z --cached --others --exclude-standard | node scripts/issue5/check.mjs"
+  },
+  "devDependencies": {
+    "acorn": "8.15.0",
+    "playwright": "1.62.1"
+  }
+}

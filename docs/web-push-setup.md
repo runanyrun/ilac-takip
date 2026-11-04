@@ -1,5 +1,12 @@
 # Web Push Kurulum Notları
 
+> Bu belge eski MVP'nin yerel demosuna aittir; canlı Cloudflare Worker kurulumu
+> değildir. Demo yalnız loopback dinler. En az 32 karakterlik özel
+> `PUSH_DEMO_TOKEN` yerelde ayarlanmalıdır; tüm istekler
+> `Authorization: Bearer ...` başlığı gerektirir. Değeri GitHub'a eklemeyin.
+> `.env` kendiliğinden yüklenmez; Node 24 ile `node --env-file=.env server.js`
+> kullanılabilir. Çok kullanıcılı API izolasyonu bu demo tarafından sağlanmaz.
+
 ## 1) VAPID key üretimi
 
 ```bash

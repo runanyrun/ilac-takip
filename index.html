@@ -2,17 +2,27 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <meta name="theme-color" content="#f4f4f2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="İlaç Takip">
 <title>İlaç Takip</title>
-<link rel="manifest" href="manifest.json?v=20260420">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/styles.css?v=20261104-ux4">
+<link rel="manifest" href="manifest.json?v=20261104-issue7-v2">
+<link rel="stylesheet" href="src/styles.css?v=20261104-issue7-v2">
+
 </head>
 <body>
+<div id="startup-status" role="status" style="padding:16px;font-size:18px">Uygulama yükleniyor… <button type="button" onclick="location.reload()">Yeniden dene</button><p>Uzun sürerse bağlantıyı kontrol edin. Verileri veya site depolamasını silmeyin.</p></div>
+<noscript>İlaç Takip için JavaScript etkin olmalı. Kayıtlarınızı silmeyin.</noscript>
+<script>
+window.addEventListener('error', function(event) {
+  if (window.__ILAC_READY__) return;
+  var status = document.getElementById('startup-status');
+  if (status) status.firstChild.textContent = 'Uygulama başlatılamadı. Bağlantıyı kontrol edip yeniden deneyin. ';
+}, true);
+</script>
 <div id="app">
   <div class="header">
     <div class="header-top">
@@ -25,12 +35,8 @@
   </div>
   <div class="settings-backdrop" id="settings-backdrop" hidden onclick="toggleMainSettings()"></div>
   <section class="main-settings-panel" id="main-settings-panel" hidden role="dialog" aria-modal="true" aria-label="Ayarlar" tabindex="-1"><div class="settings-drawer-top"><button class="settings-mobile-back" type="button" onclick="toggleMainSettings()" aria-label="Geri dön">←</button><div class="settings-panel-heading">AYARLAR</div><button class="settings-close" type="button" onclick="toggleMainSettings()" aria-label="Ayarları kapat">×</button></div><div class="settings-panel-label">İlaç fotoğrafı boyutu</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option" data-photo-size="large" onclick="setFocusPhotoSize('large')">Büyük</button><button type="button" class="photo-size-option" data-photo-size="small" onclick="setFocusPhotoSize('small')">Küçük</button><button type="button" class="photo-size-option" data-photo-size="hidden" onclick="setFocusPhotoSize('hidden')">Gizle</button></div><div class="settings-panel-heading settings-extra-heading">DİĞER İŞLEMLER</div><div class="settings-action-list"><button type="button" onclick="requestNotif()">Bildirim izni</button><button type="button" onclick="exportData()">Verileri yedekle</button><button type="button" onclick="importData()">Yedekten geri yükle</button><button type="button" onclick="openCloudSetup()">Bulut test bağlantısı</button></div></section>
-  <nav class="tabs" aria-label="Ana gezinme">
-    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)"><span class="nav-icon" aria-hidden="true">▦</span><span>İlaçlar</span></button>
-    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)"><span class="nav-icon" aria-hidden="true">◷</span><span>Bugün</span></button>
-    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)"><span class="nav-icon" aria-hidden="true">▤</span><span>Geçmiş</span></button>
-    <button class="tab settings-nav-tab" type="button" id="main-settings-trigger" aria-controls="main-settings-panel" aria-expanded="false" onclick="toggleMainSettings()"><span class="nav-icon" aria-hidden="true">⚙</span><span>Ayarlar</span></button>
-  </nav>
+
+
   <div class="content">
     <div class="page" id="page-ilaclar">
       <div id="notif-prompt"></div>
@@ -39,6 +45,12 @@
     <div class="page active" id="page-bugun"><div id="today-alarms"></div></div>
     <div class="page" id="page-gecmis"><div id="history-list"></div></div>
   </div>
+  <nav class="tabs" aria-label="Ana gezinme">
+    <button class="tab" type="button" data-tab="ilaclar" onclick="switchTab('ilaclar',this)" aria-label="İlaçlar"><span class="tab-icon" aria-hidden="true">💊</span><span>İlaçlar</span></button>
+    <button class="tab active" type="button" data-tab="bugun" onclick="switchTab('bugun',this)" aria-label="Bugün" aria-current="page"><span class="tab-icon" aria-hidden="true">☀</span><span>Bugün</span></button>
+    <button class="tab" type="button" data-tab="gecmis" onclick="switchTab('gecmis',this)" aria-label="Geçmiş"><span class="tab-icon" aria-hidden="true">◴</span><span>Geçmiş</span></button>
+    <button class="tab" type="button" onclick="toggleMainSettings()" id="main-settings-trigger" aria-controls="main-settings-panel" aria-expanded="false" aria-label="Ayarları aç"><span class="tab-icon" aria-hidden="true">⚙</span><span>Ayarlar</span></button>
+  </nav>
   <button class="fab" id="add-drug-fab" onclick="openAddModal()" aria-label="Yeni ilaç ekle" hidden>+</button>
 </div>
 
@@ -56,32 +68,33 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">İlaç Adı *</label>
+      <label class="form-label" for="drug-name">İlaç Adı *</label>
       <input type="text" class="form-input" id="drug-name" placeholder="Örn: Beloc Zok 50mg">
     </div>
     <div class="form-group"><label class="form-label" for="drug-purpose">İlaç açıklaması (isteğe bağlı)</label><textarea class="form-input" id="drug-purpose" rows="2" maxlength="240" placeholder="Örn: Tansiyon için"></textarea></div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Doktor</label>
+        <label class="form-label" for="drug-doctor">Doktor</label>
         <input type="text" class="form-input" id="drug-doctor" placeholder="Dr. Adı">
       </div>
       <div class="form-group">
-        <label class="form-label">Hastane</label>
+        <label class="form-label" for="drug-hospital">Hastane</label>
         <input type="text" class="form-input" id="drug-hospital" placeholder="Hastane">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Reçete Tarihi</label>
+        <label class="form-label" for="drug-date">Reçete Tarihi</label>
         <input type="date" class="form-input" id="drug-date">
       </div>
       <div class="form-group">
-        <label class="form-label">Günde Kaç Adet</label>
-        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1" onchange="syncDoseTimeSlots()">
+        <label class="form-label" for="drug-daily">Günde Kaç Adet</label>
+        <input type="number" class="form-input" id="drug-daily" oninput="syncDailyTimes()" min="1" max="10" value="1">
+
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Kullanım Süresi</label>
+      <label class="form-label" for="drug-duration">Kullanım Süresi</label>
       <select class="form-input" id="drug-duration" onchange="toggleDuration()">
         <option value="omur_boyu">Ömür Boyu</option>
         <option value="sure">Belirli Süre (Gün)</option>
@@ -89,13 +102,13 @@
       </select>
     </div>
     <div id="duration-days-wrap" class="form-group" style="display:none">
-      <label class="form-label">Kaç Gün</label>
+      <label class="form-label" for="drug-days">Kaç Gün</label>
       <input type="number" class="form-input" id="drug-days" min="1" placeholder="30">
     </div>
     <div class="form-group">
-      <label class="form-label">Alarm Saatleri</label>
+      <label class="form-label">Alarm Saatleri</label><p id="daily-time-hint" class="form-hint">Günde 1 kullanım için 1 saat seçin.</p>
       <div class="time-slots" id="time-slots"></div>
-      <p class="form-hint">Her günlük doz için bir saat belirleyin. Saatleri reçetenize göre girin.</p>
+      <p class="form-hint">Saat sayısını reçetenize göre Günde Kaç Adet alanından değiştirin.</p>
     </div>
     <div class="form-group">
       <label class="form-label">Yemekle kullanım talimatı</label><p class="form-hint">İlaç kutusu, reçete veya eczacı talimatına göre seçin.</p>
@@ -169,8 +182,8 @@
     appId: '',
   };
 </script>
-<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script defer src="src/main.js?v=20261104-final"></script>
+<script defer src="src/safety.js?v=20261104-issue7-v2"></script>
+<script defer src="src/main.js?v=20261104-issue7-v2"></script>
+
 </body>
 </html>
