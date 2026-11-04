@@ -115,7 +115,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261104-alert1';
+const APP_VERSION = '20261104-test1';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -671,7 +671,7 @@ function checkNotifBanner() {
     return;
   }
   if (Notification.permission === 'granted') {
-    prompt.innerHTML = '<div class="notif-banner" role="status">ℹ️ Bildirim izni açık; ancak arka planda otomatik hatırlatma sunucusu henüz etkin değil. Uygulama kapalıyken bildirim garantisi yoktur.</div>';
+    prompt.innerHTML = '<div class="notif-banner" role="status">ℹ️ Bildirim izni açık. Uygulama kapalıyken otomatik hatırlatma henüz garanti edilmiyor. <button type="button" onclick="testLocalNotification()">Bildirim Testi</button></div>';
     return;
   }
   if (Notification.permission === 'denied') {
@@ -680,6 +680,29 @@ function checkNotifBanner() {
   }
   prompt.innerHTML = `<div class="notif-banner">🔔 Uygulama açıkken hatırlatma izni verilebilir. Arka planda otomatik hatırlatmalar henüz etkin değil.
     <button onclick="requestNotif()">İzin Ver</button></div>`;
+}
+
+async function testLocalNotification() {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+    alert('Önce bildirim izni verilmesi gerekiyor.');
+    return;
+  }
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg && typeof reg.showNotification === 'function') {
+      await reg.showNotification('💊 İlaç Takip — Test', {
+        body: 'Bu yalnızca anlık bildirim testidir. Arka plan hatırlatmalarının çalıştığını doğrulamaz.',
+        tag: 'ilac-local-test'
+      });
+    } else {
+      new Notification('💊 İlaç Takip — Test', {
+        body: 'Bu yalnızca anlık bildirim testidir.',
+        tag: 'ilac-local-test'
+      });
+    }
+  } catch (_) {
+    alert('Test bildirimi gösterilemedi. Bildirim ayarlarını kontrol edin.');
+  }
 }
 
 async function requestNotif() {
