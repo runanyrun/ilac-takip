@@ -457,6 +457,7 @@ function openAddModal(drugId=null) {
   }
   document.getElementById('stock-val').textContent=stockVal;
   toggleDuration();
+  syncDoseTimeSlots();
   document.getElementById('add-modal').classList.add('open');
   document.getElementById('detail-modal').classList.remove('open');
   const editor = document.querySelector('#add-modal .modal');
@@ -493,11 +494,21 @@ function renderTimeSlots(times) {
   document.getElementById('time-slots').innerHTML = timeSlots.map((t,i)=>`
     <div class="time-slot">
       <input type="time" value="${t}" onchange="timeSlots[${i}]=this.value">
-      <button class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
+      
     </div>`).join('');
 }
-function addTimeSlot()    { timeSlots.push('12:00'); renderTimeSlots(timeSlots); }
-function removeTimeSlot(i){ timeSlots.splice(i,1);   renderTimeSlots(timeSlots); }
+function syncDoseTimeSlots() {
+  const input=document.getElementById('drug-daily');
+  const n=Math.max(1,Math.min(10,parseInt(input.value,10)||1));
+  input.value=n;
+  const existing=[...timeSlots];
+  const defaults=['08:00','20:00','12:00','16:00','22:00','06:00','10:00','14:00','18:00','23:00'];
+  const next=existing.slice(0,n);
+  while(next.length<n) next.push(defaults.find(t=>!next.includes(t))||'08:00');
+  renderTimeSlots(next);
+}
+function addTimeSlot() { syncDoseTimeSlots(); }
+function removeTimeSlot(i){ alert('Saat sayısını değiştirmek için Günde Kaç Adet alanını düzenleyin.'); }
 function toggleDuration() { document.getElementById('duration-days-wrap').style.display = document.getElementById('drug-duration').value==='sure'?'block':'none'; }
 function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElementById('stock-val').textContent=stockVal; }
 
@@ -509,6 +520,12 @@ function saveDrug() {
   const usageCondition = normalizeUsageCondition((document.querySelector('input[name="usage-condition"]:checked')||{}).value);
   const usageNote = document.getElementById('drug-usage-note').value.trim();
   if (usageCondition === 'ozel' && !usageNote) { alert('Özel talimat seçildiğinde kullanım talimatını yazın.'); document.getElementById('drug-usage-note').focus(); return; }
+  const dailyInput=document.getElementById('drug-daily');
+  const daily=Number(dailyInput.value);
+  if (!Number.isInteger(daily)||daily<1||daily>10) { alert('Günlük doz sayısı 1 ile 10 arasında olmalı.'); dailyInput.focus(); return; }
+  if (timeSlots.length!==daily || timeSlots.some(t=>!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t)) || new Set(timeSlots).size!==daily) {
+    alert('Her doz için farklı ve geçerli bir saat girin. Günlük doz sayısı ile saat sayısı eşit olmalı.'); return;
+  }
   const drug = {
     id: editId || Date.now(),
     name, photo,
@@ -517,7 +534,7 @@ function saveDrug() {
     doctor:   document.getElementById('drug-doctor').value.trim(),
     hospital: document.getElementById('drug-hospital').value.trim(),
     date:     document.getElementById('drug-date').value,
-    daily:    parseInt(document.getElementById('drug-daily').value)||1,
+    daily,
     duration: document.getElementById('drug-duration').value,
     days:     document.getElementById('drug-days').value,
     alarm:    document.getElementById('drug-alarm').checked,
