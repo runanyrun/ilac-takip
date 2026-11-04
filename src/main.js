@@ -457,9 +457,11 @@ function renderHistoryPage() {
     if (key) remaining.delete(key);
     const dt = new Date(h.ts);
     const ds = dt.toLocaleDateString('tr-TR')+' '+dt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    // Keep stored action identifiers stable; use plain-language labels in the UI.
+    const actionLabel = ({ 'İlaç iadesi': 'Alınan doz geri alındı', 'Atlama geri alındı': 'Atlanan doz geri alındı' })[h.action] || h.action;
     return `<div class="history-item">
       <div class="history-dot" style="background:${colors[h.action]||'#7a8fa0'}"></div>
-      <div class="history-text"><strong>${safeDrugText(h.name)}</strong> — ${safeDrugText(h.action)}</div>
+      <div class="history-text"><strong>${safeDrugText(h.name)}</strong> — ${safeDrugText(actionLabel)}</div>
       <div class="history-date">${ds}</div>
       ${undoButton(key)}
     </div>`;
