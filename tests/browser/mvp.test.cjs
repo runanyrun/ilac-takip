@@ -324,6 +324,9 @@ test('iPhone: yerel gün, aynı anda ekleme ve constructor yerine SW hatırlatma
     PhoneNotification.permission='granted';
     PhoneNotification.requestPermission=async()=> 'granted';
     window.Notification=PhoneNotification;
+    // This timer test supplies a synthetic notification registration; avoid an
+    // unrelated real SW install racing its deliberate reload and frozen clock.
+    navigator.serviceWorker.register=async()=>({update:async()=>{},addEventListener(){}});
     navigator.serviceWorker.getRegistration=async()=>({showNotification:async(title,options)=>window.__localReminders.push({title,...options})});
   });
   // 00:30 Istanbul is still the previous UTC date: default date must stay local.
