@@ -51,6 +51,23 @@ async function add(page, name = 'Synthetic') {
 const state = page => page.evaluate(() => ({ drugs: JSON.parse(localStorage.ilac_drugs_v2 || '[]'),
   log: JSON.parse(localStorage.ilac_log_v2 || '{}'), history: JSON.parse(localStorage.ilac_history_v2 || '[]') }));
 
+test('Alt gezinme: sayfalar erişilebilir, seçili sekme belirtilir ve ekle düğmesi doğru yerde görünür', async t => {
+  const { page } = await profile(t);
+  const tabs = page.locator('#app > nav.tabs');
+  assert.equal(await tabs.count(), 1);
+  assert.equal(await tabs.locator('.tab').count(), 3);
+  assert.equal(await tabs.locator('[aria-current="page"]').getAttribute('data-tab'), 'bugun');
+  const bottom = await tabs.boundingBox();
+  const content = await page.locator('#app > .content').boundingBox();
+  assert.ok(bottom && content && bottom.y >= content.y + content.height - 2);
+  await tabs.locator('[data-tab="ilaclar"]').click();
+  assert.equal(await tabs.locator('[aria-current="page"]').getAttribute('data-tab'), 'ilaclar');
+  assert.equal(await page.locator('#add-drug-fab').isVisible(), true);
+  await tabs.locator('[data-tab="gecmis"]').click();
+  assert.equal(await tabs.locator('[aria-current="page"]').getAttribute('data-tab'), 'gecmis');
+  assert.equal(await page.locator('#add-drug-fab').isVisible(), false);
+});
+
 test('MVP tarayıcı: CRUD, alım/geri alma/atlama, geçmiş ve offline veri kalıcılığı', async t => {
   const { page, context } = await profile(t);
   page.on('dialog', dialog => dialog.accept());
