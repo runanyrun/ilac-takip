@@ -365,9 +365,13 @@ function toggleTaken(key) {
   if (takenLog[key]) {
     if (!confirm('Bu dozun kaydını geri almak istiyor musunuz?')) return;
     const wasTaken = takenLog[key] !== 'skipped';
-    delete takenLog[key];
+    const nextLog = { ...takenLog };
+    delete nextLog[key];
+    try { saveLog(nextLog); }
+    catch (error) { alert('Doz kaydı geri alınamadı. Depolama alanını kontrol edin.'); return; }
+    takenLog = nextLog;
     if (d && wasTaken) { d.stock = (d.stock||0)+1; logHistory(d.id,'İlaç iadesi'); }
-    saveDrugs(drugs); saveLog(takenLog);
+    try { saveDrugs(drugs); } catch (error) { alert('Stok güncellenemedi. Depolama alanını kontrol edin.'); }
     renderToday();
     renderDrugs();
     syncPushSchedule();
