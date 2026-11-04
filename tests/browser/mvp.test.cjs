@@ -193,6 +193,7 @@ for (const skipped of [false, true]) {
     assert.deepEqual(after.log, expectedLog);
     assert.deepEqual(after.history.slice(1), data.history);
     assert.equal(after.history[0].action, skipped ? 'Atlama geri alındı' : 'İlaç iadesi');
+    assert.equal(await page.locator('.history-text').filter({ hasText: skipped ? 'Atlanan doz geri alındı' : 'Alınan doz geri alındı' }).count(), 1);
     assert.equal(await button.count(), 0);
     // A stale history action must never turn into another ALDIM or refund twice.
     await page.evaluate(key => undoDose(key), key);
