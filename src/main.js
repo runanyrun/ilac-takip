@@ -46,7 +46,7 @@ function setFocusPhotoSize(size) {
   updateMainSettings();
 }
 
-function loadDrugs()   { try { return JSON.parse(localStorage.getItem(LS_DRUGS))   || []; } catch(e){ return []; } }
+function loadDrugs()   { try { const value = JSON.parse(localStorage.getItem(LS_DRUGS)); return Array.isArray(value) ? value.filter(d => d && typeof d === 'object' && typeof d.name === 'string') : []; } catch(e){ return []; } }
 function loadLog()     { try { return JSON.parse(localStorage.getItem(LS_LOG))     || {}; } catch(e){ return {}; } }
 function loadHistory() { try { return JSON.parse(localStorage.getItem(LS_HISTORY)) || []; } catch(e){ return []; } }
 
