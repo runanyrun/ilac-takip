@@ -1,4 +1,4 @@
-const APP_VERSION = '20261104-issue7-v1';
+const APP_VERSION = '20261104-issue7-v2';
 // Stop before reading/writing records if stale HTML loaded a different bundle.
 const requestedVersion = document.currentScript && new URL(document.currentScript.src).searchParams.get('v');
 if (requestedVersion && requestedVersion !== APP_VERSION) throw new Error('Uygulama sürümü uyuşmuyor. Verileri silmeden yeniden yükleyin.');
@@ -148,6 +148,7 @@ function refreshVisibleDay() {
   if (todayStr() !== displayedDay) { displayedDay = todayStr(); scheduleAlarms(); }
 }
 setInterval(refreshVisibleDay, 60000);
+window.addEventListener('focus', () => { refreshVisibleDay(); scheduleAlarms(); });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') { refreshVisibleDay(); scheduleAlarms(); }
 });
@@ -840,7 +841,7 @@ function scheduleAlarms() {
           const registration = typeof navigator !== 'undefined' && navigator.serviceWorker?.getRegistration
             ? await navigator.serviceWorker.getRegistration() : null;
           if (!takenLog[key]) {
-            const options = { body: `${d.name} — ${d.daily} adet alınacak`, tag: `drug_${d.id}_${t}` };
+            const options = { body: `${d.name} — planlanan ilaç saati ${t}`, tag: `drug_${d.id}_${t}` };
             if (registration?.showNotification) await registration.showNotification('💊 İlaç Zamanı!',options);
             else new Notification('💊 İlaç Zamanı!',options);
           }

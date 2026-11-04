@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="İlaç Takip">
 <title>İlaç Takip</title>
-<link rel="manifest" href="manifest.json?v=20261104-issue7-v1">
-<link rel="stylesheet" href="src/styles.css?v=20261104-issue7-v1">
+<link rel="manifest" href="manifest.json?v=20261104-issue7-v2">
+<link rel="stylesheet" href="src/styles.css?v=20261104-issue7-v2">
 
 </head>
 <body>
@@ -30,9 +30,7 @@ window.addEventListener('error', function(event) {
         <h1>💊 İlaç Takip</h1>
         <p id="header-date"></p>
       </div>
-      <div class="header-actions">
-        <button type="button" class="menu-icon-trigger" id="main-settings-trigger" aria-label="Ayarlar menüsünü aç" aria-controls="main-settings-panel" aria-expanded="false" onclick="toggleMainSettings()"><span class="menu-lines" aria-hidden="true"><i></i><i></i><i></i></span></button>
-      </div>
+      <div class="header-actions"></div>
     </div>
   </div>
   <div class="settings-backdrop" id="settings-backdrop" hidden onclick="toggleMainSettings()"></div>
@@ -51,7 +49,7 @@ window.addEventListener('error', function(event) {
     <button class="tab" type="button" data-tab="ilaclar" onclick="switchTab('ilaclar',this)" aria-label="İlaçlar"><span class="tab-icon" aria-hidden="true">💊</span><span>İlaçlar</span></button>
     <button class="tab active" type="button" data-tab="bugun" onclick="switchTab('bugun',this)" aria-label="Bugün" aria-current="page"><span class="tab-icon" aria-hidden="true">☀</span><span>Bugün</span></button>
     <button class="tab" type="button" data-tab="gecmis" onclick="switchTab('gecmis',this)" aria-label="Geçmiş"><span class="tab-icon" aria-hidden="true">◴</span><span>Geçmiş</span></button>
-    <button class="tab" type="button" onclick="toggleMainSettings()" aria-label="Ayarları aç"><span class="tab-icon" aria-hidden="true">⚙</span><span>Ayarlar</span></button>
+    <button class="tab" type="button" onclick="toggleMainSettings()" id="main-settings-trigger" aria-controls="main-settings-panel" aria-expanded="false" aria-label="Ayarları aç"><span class="tab-icon" aria-hidden="true">⚙</span><span>Ayarlar</span></button>
   </nav>
   <button class="fab" id="add-drug-fab" onclick="openAddModal()" aria-label="Yeni ilaç ekle" hidden>+</button>
 </div>
@@ -110,7 +108,7 @@ window.addEventListener('error', function(event) {
     <div class="form-group">
       <label class="form-label">Alarm Saatleri</label><p id="daily-time-hint" class="form-hint">Günde 1 kullanım için 1 saat seçin.</p>
       <div class="time-slots" id="time-slots"></div>
-      <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
+      <p class="form-hint">Saat sayısını reçetenize göre Günde Kaç Adet alanından değiştirin.</p>
     </div>
     <div class="form-group">
       <label class="form-label">Yemekle kullanım talimatı</label><p class="form-hint">İlaç kutusu, reçete veya eczacı talimatına göre seçin.</p>
@@ -184,8 +182,8 @@ window.addEventListener('error', function(event) {
     appId: '',
   };
 </script>
-<script defer src="src/safety.js?v=20261104-issue7-v1"></script>
-<script defer src="src/main.js?v=20261104-issue7-v1"></script>
+<script defer src="src/safety.js?v=20261104-issue7-v2"></script>
+<script defer src="src/main.js?v=20261104-issue7-v2"></script>
 
 </body>
 </html>
