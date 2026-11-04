@@ -393,10 +393,12 @@ function toggleTaken(key) {
 function skipDose(key) {
   if (takenLog[key] || takingState[key]) return;
   if (!confirm('Bu dozu atlandı olarak kaydetmek istiyor musunuz? İlaç alınmış sayılmayacak.')) return;
-  takenLog[key] = 'skipped';
+  const nextLog = { ...takenLog, [key]: 'skipped' };
+  try { saveLog(nextLog); }
+  catch (error) { alert('Doz kaydı kaydedilemedi. Cihaz depolamasını kontrol edin.'); return; }
+  takenLog = nextLog;
   const d = drugs.find(x => String(x.id) === key.split('_')[1]);
   if (d) logHistory(d.id, 'Doz atlandı');
-  saveLog(takenLog);
   renderToday();
   syncPushSchedule();
 }
@@ -431,7 +433,8 @@ function logHistory(drugId, action) {
   const d = drugs.find(x=>x.id==drugId);
   const hist = loadHistory();
   hist.unshift({ drugId, name:d?d.name:'?', action, ts:new Date().toISOString() });
-  saveHistory(hist.slice(0,200));
+  try { saveHistory(hist.slice(0,200)); }
+  catch (error) { console.warn('Geçmiş kaydı depolama alanına yazılamadı.', error); }
 }
 
 // ── MODAL ──
