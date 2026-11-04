@@ -209,10 +209,10 @@ function updateHeaderDate() {
 // ── TABS ──
 function switchTab(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.removeAttribute('aria-current'); });
   document.getElementById('page-'+name).classList.add('active');
   const tabEl = el || document.querySelector(`.tab[data-tab="${name}"]`);
-  if (tabEl) tabEl.classList.add('active');
+  if (tabEl) { tabEl.classList.add('active'); tabEl.setAttribute('aria-current', 'page'); }
   const addButton = document.getElementById('add-drug-fab');
   if (addButton) addButton.hidden = name !== 'ilaclar';
   if (name==='bugun')  renderToday();
