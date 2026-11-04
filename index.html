@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="İlaç Takip">
 <title>İlaç Takip</title>
-<link rel="manifest" href="manifest.json?v=20261104-test1">
+<link rel="manifest" href="manifest.json?v=20261104-ui2">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/styles.css?v=20261104-test1">
+<link rel="stylesheet" href="src/styles.css?v=20261104-ui2">
 </head>
 <body>
 <div id="app">
@@ -37,9 +37,10 @@
     <div class="page" id="page-gecmis"><div id="history-list"></div></div>
   </div>
   <nav class="tabs" aria-label="Ana gezinme">
-    <button class="tab" type="button" data-tab="ilaclar" onclick="switchTab('ilaclar',this)" aria-label="İlaçlar"><span class="tab-icon" aria-hidden="true">▤</span><span>İlaçlar</span></button>
-    <button class="tab active" type="button" data-tab="bugun" onclick="switchTab('bugun',this)" aria-label="Bugün" aria-current="page"><span class="tab-icon" aria-hidden="true">◷</span><span>Bugün</span></button>
-    <button class="tab" type="button" data-tab="gecmis" onclick="switchTab('gecmis',this)" aria-label="Geçmiş"><span class="tab-icon" aria-hidden="true">↶</span><span>Geçmiş</span></button>
+    <button class="tab" type="button" data-tab="ilaclar" onclick="switchTab('ilaclar',this)" aria-label="İlaçlar"><span class="tab-icon" aria-hidden="true">💊</span><span>İlaçlar</span></button>
+    <button class="tab active" type="button" data-tab="bugun" onclick="switchTab('bugun',this)" aria-label="Bugün" aria-current="page"><span class="tab-icon" aria-hidden="true">☀</span><span>Bugün</span></button>
+    <button class="tab" type="button" data-tab="gecmis" onclick="switchTab('gecmis',this)" aria-label="Geçmiş"><span class="tab-icon" aria-hidden="true">◴</span><span>Geçmiş</span></button>
+    <button class="tab" type="button" onclick="toggleMainSettings()" aria-label="Ayarları aç"><span class="tab-icon" aria-hidden="true">⚙</span><span>Ayarlar</span></button>
   </nav>
   <button class="fab" id="add-drug-fab" onclick="openAddModal()" aria-label="Yeni ilaç ekle" hidden>+</button>
 </div>
@@ -79,7 +80,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Günde Kaç Adet</label>
-        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1">
+        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1" oninput="syncDailyTimeHint()">
       </div>
     </div>
     <div class="form-group">
@@ -95,7 +96,7 @@
       <input type="number" class="form-input" id="drug-days" min="1" placeholder="30">
     </div>
     <div class="form-group">
-      <label class="form-label">Alarm Saatleri</label>
+      <label class="form-label">Alarm Saatleri</label><p id="daily-time-hint" class="form-hint">Günde 1 kullanım için 1 saat seçin.</p>
       <div class="time-slots" id="time-slots"></div>
       <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
     </div>
@@ -173,7 +174,7 @@
 </script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script defer src="src/safety.js?v=20261104-test1"></script>
-<script defer src="src/main.js?v=20261104-test1"></script>
+<script defer src="src/safety.js?v=20261104-ui2"></script>
+<script defer src="src/main.js?v=20261104-ui2"></script>
 </body>
 </html>
