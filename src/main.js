@@ -385,9 +385,12 @@ function toggleTaken(key) {
   setTimeout(() => {
     if (!takingState[key]) return;
     delete takingState[key];
-    takenLog[key] = new Date().toISOString();
+    const nextLog = { ...takenLog, [key]: new Date().toISOString() };
+    try { saveLog(nextLog); }
+    catch (error) { alert('Doz kaydı kaydedilemedi. Depolama alanını kontrol edin.'); renderToday(); return; }
+    takenLog = nextLog;
     if (d && d.stock > 0) { d.stock = Math.max(0,(d.stock||0)-1); logHistory(d.id,'İlaç alındı'); }
-    saveDrugs(drugs); saveLog(takenLog);
+    try { saveDrugs(drugs); } catch (error) { alert('Doz kaydedildi ancak stok güncellenemedi.'); }
     renderToday();
     renderDrugs();
     syncPushSchedule();
