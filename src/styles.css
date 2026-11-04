@@ -858,3 +858,12 @@ html,body{background:#f5f5f3;color:#171717;font-family:Arial,Helvetica,sans-seri
   #page-bugun .alarm-item.focus .alarm-action,
   #page-bugun .alarm-item.focus .alarm-skip-action { min-height: 46px !important; }
 }
+
+/* Accessibility correction: restore the intentionally large medicine picture. */
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width: min(74vw, 270px) !important;
+  height: min(74vw, 270px) !important;
+  max-width: 100%;
+  font-size: clamp(78px, 20vw, 106px) !important;
+}
