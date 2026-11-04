@@ -47,8 +47,8 @@ function setFocusPhotoSize(size) {
 }
 
 function loadDrugs()   { try { const value = JSON.parse(localStorage.getItem(LS_DRUGS)); return Array.isArray(value) ? value.filter(d => d && typeof d === 'object' && typeof d.name === 'string') : []; } catch(e){ return []; } }
-function loadLog()     { try { return JSON.parse(localStorage.getItem(LS_LOG))     || {}; } catch(e){ return {}; } }
-function loadHistory() { try { return JSON.parse(localStorage.getItem(LS_HISTORY)) || []; } catch(e){ return []; } }
+function loadLog()     { try { const value = JSON.parse(localStorage.getItem(LS_LOG)); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch(e){ return {}; } }
+function loadHistory() { try { const value = JSON.parse(localStorage.getItem(LS_HISTORY)); return Array.isArray(value) ? value : []; } catch(e){ return []; } }
 
 function saveDrugs(d)   { localStorage.setItem(LS_DRUGS,   JSON.stringify(d)); }
 function saveLog(l)     { localStorage.setItem(LS_LOG,     JSON.stringify(l)); }
