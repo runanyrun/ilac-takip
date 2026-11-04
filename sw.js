@@ -1,4 +1,4 @@
-const SW_VERSION = '20261104-alert1';
+const SW_VERSION = '20261104-test1';
 const CACHE = `ilac-takip-v${SW_VERSION}`;
 const APP_SHELL = [
   './',
