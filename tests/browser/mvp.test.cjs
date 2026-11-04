@@ -446,3 +446,16 @@ test('Issue 7: eski HTML ve farklı bundle eşleşmezse kayıtlar açılışta d
   assert.match(await page.locator('#startup-status').innerText(),/başlatılamadı/);
   assert.equal(await page.evaluate(()=>localStorage.ilac_drugs_v2),'synthetic-preserved');
 });
+
+test('Issue 7: başlangıç boş Firebase veya harici font sunucusunu beklemez',async t=>{
+  const context=await browser.newContext(iphone);t.after(()=>context.close());
+  const external=[];
+  await context.route('**/*',route=>{
+    if(!route.request().url().startsWith(base)){external.push(route.request().url());return route.abort();}
+    return route.continue();
+  });
+  const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.__ILAC_READY__);
+  assert.deepEqual(external,[]);
+  assert.equal(await page.locator('script[src^="https://"],link[rel="stylesheet"][href^="https://"]').count(),0);
+});
