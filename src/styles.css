@@ -773,3 +773,7 @@ html,body{background:#f5f5f3;color:#171717;font-family:Arial,Helvetica,sans-seri
 #page-bugun .alarm-item.focus .alarm-action{width:100%!important;min-height:54px!important;margin:0!important}
 #page-bugun .alarm-item.focus .alarm-skip-action{width:100%!important;min-height:44px!important;margin:0!important}
 @media(prefers-reduced-motion:reduce){#page-bugun .alarm-item.focus .alarm-overdue-text{animation:none}}
+
+/* Issue 7: retain large focus photo, make bottom navigation easy to tap. */
+.tabs .tab {min-height:48px;}
+.time-slot input,.time-slot-remove,.add-time-btn {min-height:44px;}

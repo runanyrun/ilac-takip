@@ -2,17 +2,26 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <meta name="theme-color" content="#f4f4f2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="İlaç Takip">
 <title>İlaç Takip</title>
-<link rel="manifest" href="manifest.json?v=20261103-app3">
+<link rel="manifest" href="manifest.json?v=20261104-issue7-v1">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/styles.css?v=20261103-app3">
+<link rel="stylesheet" href="src/styles.css?v=20261104-issue7-v1">
 </head>
 <body>
+<div id="startup-status" role="status" style="padding:16px;font-size:18px">Uygulama yükleniyor… <button type="button" onclick="location.reload()">Yeniden dene</button><p>Uzun sürerse bağlantıyı kontrol edin. Verileri veya site depolamasını silmeyin.</p></div>
+<noscript>İlaç Takip için JavaScript etkin olmalı. Kayıtlarınızı silmeyin.</noscript>
+<script>
+window.addEventListener('error', function(event) {
+  if (window.__ILAC_READY__) return;
+  var status = document.getElementById('startup-status');
+  if (status) status.firstChild.textContent = 'Uygulama başlatılamadı. Bağlantıyı kontrol edip yeniden deneyin. ';
+}, true);
+</script>
 <div id="app">
   <div class="header">
     <div class="header-top">
@@ -31,6 +40,7 @@
     <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">İlaçlar</button>
     <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">Bugün</button>
     <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)">Geçmiş</button>
+    <button type="button" class="tab" aria-label="Ayarları aç" onclick="toggleMainSettings()">Ayarlar</button>
   </div>
   <div class="content">
     <div class="page" id="page-ilaclar">
@@ -57,32 +67,32 @@
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">İlaç Adı *</label>
+      <label class="form-label" for="drug-name">İlaç Adı *</label>
       <input type="text" class="form-input" id="drug-name" placeholder="Örn: Beloc Zok 50mg">
     </div>
     <div class="form-group"><label class="form-label" for="drug-purpose">İlaç açıklaması (isteğe bağlı)</label><textarea class="form-input" id="drug-purpose" rows="2" maxlength="240" placeholder="Örn: Tansiyon için"></textarea></div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Doktor</label>
+        <label class="form-label" for="drug-doctor">Doktor</label>
         <input type="text" class="form-input" id="drug-doctor" placeholder="Dr. Adı">
       </div>
       <div class="form-group">
-        <label class="form-label">Hastane</label>
+        <label class="form-label" for="drug-hospital">Hastane</label>
         <input type="text" class="form-input" id="drug-hospital" placeholder="Hastane">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Reçete Tarihi</label>
+        <label class="form-label" for="drug-date">Reçete Tarihi</label>
         <input type="date" class="form-input" id="drug-date">
       </div>
       <div class="form-group">
-        <label class="form-label">Günde Kaç Adet</label>
-        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1">
+        <label class="form-label" for="drug-daily">Günde Kaç Adet</label>
+        <input type="number" class="form-input" id="drug-daily" oninput="syncDailyTimes()" min="1" max="10" value="1">
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Kullanım Süresi</label>
+      <label class="form-label" for="drug-duration">Kullanım Süresi</label>
       <select class="form-input" id="drug-duration" onchange="toggleDuration()">
         <option value="omur_boyu">Ömür Boyu</option>
         <option value="sure">Belirli Süre (Gün)</option>
@@ -90,7 +100,7 @@
       </select>
     </div>
     <div id="duration-days-wrap" class="form-group" style="display:none">
-      <label class="form-label">Kaç Gün</label>
+      <label class="form-label" for="drug-days">Kaç Gün</label>
       <input type="number" class="form-input" id="drug-days" min="1" placeholder="30">
     </div>
     <div class="form-group">
@@ -172,7 +182,7 @@
 </script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script defer src="src/safety.js?v=20261103-app3"></script>
-<script defer src="src/main.js?v=20261103-app3"></script>
+<script defer src="src/safety.js?v=20261104-issue7-v1"></script>
+<script defer src="src/main.js?v=20261104-issue7-v1"></script>
 </body>
 </html>

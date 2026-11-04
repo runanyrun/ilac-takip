@@ -4,7 +4,7 @@ const LS_LOG     = 'ilac_log_v2';
 const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
-function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; }
+function focusPhotoSize() { try { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; } catch (_) { return 'large'; } }
 let mainSettingsOpen = false;
 let settingsPreviousFocus = null;
 function updateMainSettings() {
@@ -41,7 +41,7 @@ document.addEventListener('keydown', event => {
   else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
 });
 function setFocusPhotoSize(size) {
-  localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large');
+  try { localStorage.setItem(LS_PHOTO_SIZE, ['small','hidden'].includes(size) ? size : 'large'); } catch (_) { alert('Görünüm tercihi kaydedilemedi.'); return; }
   renderToday();
   updateMainSettings();
 }
@@ -50,11 +50,15 @@ function loadDrugs() { return localData().read(LS_DRUGS); }
 function loadLog() { return localData().read(LS_LOG); }
 function loadHistory() { return localData().read(LS_HISTORY); }
 function localData() {
-  if (!localData.instance) localData.instance = IlacSafety.storage(localStorage, {
+  if (!localData.instance) {
+    let store;
+    try { store = localStorage; } catch (_) { store = { getItem() { throw new Error('Storage unavailable'); } }; }
+    localData.instance = IlacSafety.storage(store, {
     [LS_DRUGS]: { valid: IlacSafety.validDrugs, empty: () => [] },
     [LS_LOG]: { valid: IlacSafety.validLog, empty: () => ({}) },
     [LS_HISTORY]: { valid: IlacSafety.validHistory, empty: () => [] }
-  });
+    });
+  }
   return localData.instance;
 }
 function saveDrugs(d) { localData().commit({ [LS_DRUGS]: d }); }
@@ -115,7 +119,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261103-app3';
+const APP_VERSION = '20261104-issue7-v1';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -431,7 +435,7 @@ function skipDose(key) {
 function renderStats() {
   const today = todayStr();
   let total=0, done=0;
-  drugs.forEach(d => { if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`] && takenLog[`${today}_${d.id}_${t}`] !== 'skipped') done++; }); });
+  drugs.forEach(d => { if(d.date && d.date > today) return; if(d.times) d.times.forEach(t => { total++; if(takenLog[`${today}_${d.id}_${t}`] && takenLog[`${today}_${d.id}_${t}`] !== 'skipped') done++; }); });
   if (!document.getElementById('stat-total')) return;
   document.getElementById('stat-total').textContent = drugs.length;
   document.getElementById('stat-today').textContent = total;
@@ -558,12 +562,22 @@ function renderTimeSlots(times) {
   timeSlots=[...times];
   document.getElementById('time-slots').innerHTML = timeSlots.map((t,i)=>`
     <div class="time-slot">
-      <input type="time" value="${safeDrugText(t)}" onchange="timeSlots[${i}]=this.value">
-      <button class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
+      <input type="time" aria-label="${i+1}. doz saati" value="${safeDrugText(t)}" onchange="timeSlots[${i}]=this.value">
+      <button type="button" aria-label="${i+1}. doz saatini kaldır" class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
     </div>`).join('');
 }
-function addTimeSlot()    { timeSlots.push('12:00'); renderTimeSlots(timeSlots); }
-function removeTimeSlot(i){ timeSlots.splice(i,1);   renderTimeSlots(timeSlots); }
+function syncDailyTimes() {
+  const count = Number(document.getElementById('drug-daily').value);
+  if (!Number.isSafeInteger(count) || count < 1 || count > 10) return;
+  const current = [...document.querySelectorAll('#time-slots input')].map(input => input.value);
+  renderTimeSlots(Array.from({length:count}, (_, i) => current[i] || ''));
+}
+function addTimeSlot() {
+  const count = document.querySelectorAll('#time-slots input').length;
+  if (count >= 10) return;
+  document.getElementById('drug-daily').value = count + 1; syncDailyTimes();
+}
+function removeTimeSlot(i){ timeSlots=[...document.querySelectorAll('#time-slots input')].map(input=>input.value); timeSlots.splice(i,1); if (!timeSlots.length) timeSlots=['']; document.getElementById('drug-daily').value=timeSlots.length; renderTimeSlots(timeSlots); }
 function toggleDuration() { document.getElementById('duration-days-wrap').style.display = document.getElementById('drug-duration').value==='sure'?'block':'none'; }
 function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElementById('stock-val').textContent=stockVal; }
 
@@ -577,6 +591,7 @@ function saveDrug() {
   }
   const daily = Number(document.getElementById('drug-daily').value);
   if (!Number.isSafeInteger(daily) || daily < 1 || daily > 10) { alert('Günlük adet 1 ile 10 arasında tam sayı olmalı.'); return; }
+  if (times.length !== daily) { alert('Günlük doz sayısı kadar farklı saat seçin.'); return; }
   const duration = document.getElementById('drug-duration').value;
   const days = document.getElementById('drug-days').value;
   if (duration === 'sure' && (!/^\d+$/.test(days) || Number(days) < 1 || !Number.isSafeInteger(Number(days)))) { alert('Kullanım süresini pozitif tam gün olarak yazın.'); return; }
@@ -663,17 +678,17 @@ function addStockPrompt(id) {
 // ── NOTIFICATIONS ──
 function checkNotifBanner() {
   const prompt = document.getElementById('notif-prompt');
-  prompt.innerHTML = '';
+  prompt.innerHTML = '<div class="notif-banner">Arka plan bildirimleri: kurulum gerekiyor. Uygulama kapalıyken veya telefon kilitliyken yerel hatırlatmalar güvenilir değildir. Yedek olarak telefon alarmı kurun.</div>';
   if (typeof Notification === 'undefined' || !isWebPushCapable()) {
-    prompt.innerHTML = '<div class="notif-banner">ℹ️ Arka plan bildirimleri için iPhone’da uygulamayı ana ekrandan açın.</div>';
+    prompt.innerHTML += '<div class="notif-banner">ℹ️ Arka plan bildirimleri için iPhone’da uygulamayı ana ekrandan açın.</div>';
     return;
   }
   if (Notification.permission === 'granted') return;
   if (Notification.permission === 'denied') {
-    prompt.innerHTML = '<div class="notif-banner">Bildirim izni kapalı. İzni cihaz ayarlarından kontrol edebilirsiniz.</div>';
+    prompt.innerHTML += '<div class="notif-banner">Bildirim izni kapalı. İzni cihaz ayarlarından kontrol edebilirsiniz.</div>';
     return;
   }
-  prompt.innerHTML = `<div class="notif-banner">🔔 Alarm bildirimleri için izin ver
+  prompt.innerHTML += `<div class="notif-banner">🔔 Alarm bildirimleri için izin ver
     <button onclick="requestNotif()">İzin Ver</button></div>`;
 }
 
@@ -882,7 +897,7 @@ function currentBackup() {
 function exportData() {
   if (localData().faults.size) {
     const raw = {};
-    for (const key of [LS_DRUGS, LS_LOG, LS_HISTORY]) raw[key] = localStorage.getItem(key);
+    for (const key of [LS_DRUGS, LS_LOG, LS_HISTORY, 'ilac_transaction_v1']) raw[key] = localStorage.getItem(key);
     downloadBackup({ format: 'ilac-takip-recovery', raw }, 'ilac-kurtarma-' + todayStr() + '.json');
     return;
   }
@@ -984,3 +999,6 @@ async function connectCloudDevice() {
 
 document.getElementById('add-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('detail-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+window.__ILAC_READY__ = true;
+document.getElementById('startup-status')?.remove();

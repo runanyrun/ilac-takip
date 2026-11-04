@@ -90,3 +90,41 @@ test('SW never caches API/auth or unrelated navigation, including subpath instal
     assert.equal(intercepted,false);
   }
 });
+
+test('Doz sayısı ile saat sayısı eşleşmeyen yedek mevcut veriyi değiştirmeden reddedilir', () => {
+  const b=backup();b.drugs[0].daily=2;
+  assert.throws(()=>safety.backup(b));
+  b.drugs[0].times.push('20:00');assert.doesNotThrow(()=>safety.backup(b));
+  // Legacy local data remains readable; no automatic rewrite/migration.
+  b.drugs[0].times.pop();assert.equal(safety.validDrugs(b.drugs),true);
+});
+
+test('Yarım doz işlemi yeniden açılışta stok, alım ve geçmişi birlikte geri alır',()=>{
+  const f=fixture(),before=Object.fromEntries(f.values);
+  const changed=drug();changed.stock=29;
+  const after={drugs:JSON.stringify([changed]),log:JSON.stringify({'2026-11-04_1_08:00':true}),history:JSON.stringify([{name:'Synthetic',action:'alındı',ts:'2026-11-04T08:00:00Z'}])};
+  f.values.set('ilac_transaction_v1',JSON.stringify({version:1,before,after}));
+  f.values.set('drugs',after.drugs);f.values.set('log',after.log);
+  const s=f.open();assert.equal(s.read('drugs')[0].stock,30);
+  assert.deepEqual([...f.values],Object.entries(before));
+});
+
+test('Başarısız rollback journalı korur; sonraki açılış tutarlı kurtarır',()=>{
+  const f=fixture(),s=f.open(),original=f.store.setItem;
+  let failed=false;
+  f.store.setItem=(key,value)=>{if(key==='log'){failed=true;throw Error('quota');}if(key==='drugs'&&failed)throw Error('rollback quota');original(key,value);};
+  const changed=drug();changed.stock=29;
+  assert.throws(()=>s.commit({drugs:[changed],log:{'2026-11-04_1_08:00':true}}),/geri alma tamamlanamadı/);
+  assert.ok(f.values.has('ilac_transaction_v1'));
+  f.store.setItem=original;const recovered=f.open();
+  assert.equal(recovered.read('drugs')[0].stock,30);assert.equal(f.values.get('log'),'{}');
+  assert.equal(f.values.has('ilac_transaction_v1'),false);
+});
+
+test('Divergent veya bozuk journal veriyi ezmez; yazmayı durdurur',()=>{
+  for(const raw of ['{broken',JSON.stringify({version:1,before:{drugs:'[]'},after:{drugs:'[]'}})]){
+    const f=fixture();f.values.set('ilac_transaction_v1',raw);const old=f.values.get('drugs'),s=f.open();
+    assert.throws(()=>s.commit({drugs:[]}),/yazma durduruldu/);
+    assert.equal(f.values.get('drugs'),old);assert.equal(f.values.get('ilac_transaction_v1'),raw);
+  }
+});

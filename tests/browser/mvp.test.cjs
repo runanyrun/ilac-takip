@@ -262,11 +262,10 @@ test('iPhone ekranı: eski renkler/gezinme, doğrulama, kayıpsız düzenleme ve
   assert.match(messages.at(-1),/tam sayı/);
   assert.equal((await state(page)).drugs[0].name,'Synthetic phone');
   await page.locator('#drug-daily').fill('2');
-  await page.locator('#time-slots input').fill('');
+  await page.locator('#time-slots input').first().fill('');
   await page.getByRole('button',{name:'Kaydet',exact:true}).click();
   assert.match(messages.at(-1),/alarm saatleri/);
-  await page.locator('#time-slots input').fill('08:00');
-  await page.locator('.add-time-btn').click();
+  await page.locator('#time-slots input').first().fill('08:00');
   await page.locator('#time-slots input').nth(1).fill('08:00');
   await page.getByRole('button',{name:'Kaydet',exact:true}).click();
   assert.match(messages.at(-1),/farklı alarm/);
@@ -347,4 +346,70 @@ test('iPhone Safari desteği yokken izin düğmesi hata vermez; PWA kimliği de�
     return {id:manifest.id,start_url:manifest.start_url,scope:manifest.scope,display:manifest.display};
   });
   assert.deepEqual(identity,{id:'/ilac-takip',start_url:'./index.html',scope:'./',display:'standalone'});
+});
+
+test('Issue 7: 1/2 doz, büyük fotoğraf, kompakt liste ve altta Ayarlar',async t=>{
+  const {page}=await profile(t,iphone);page.on('dialog',d=>d.accept());
+  await add(page,'Synthetic one');
+  await page.locator('.drug-card').click();await page.getByRole('button',{name:/Düzenle/}).click();
+  await page.locator('#drug-daily').fill('2');
+  assert.equal(await page.locator('#time-slots input').count(),2);
+  await page.locator('#time-slots input').nth(1).fill('20:00');
+  await page.getByRole('button',{name:'Kaydet',exact:true}).click();
+  assert.deepEqual((await state(page)).drugs[0].times,['08:00','20:00']);
+  await page.evaluate(()=>{
+    const rows=JSON.parse(localStorage.ilac_drugs_v2);
+    rows[0].photo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6VZsAAAAASUVORK5CYII=';
+    localStorage.setItem('ilac_drugs_v2',JSON.stringify(rows));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__ILAC_READY__);
+  await page.locator('[data-tab="bugun"]').click();
+  const big=await page.locator('.alarm-item.focus .alarm-photo').boundingBox();
+  assert.ok(big.width>=200);assert.equal(await page.locator('.alarm-item.compact').count(),1);
+  await page.getByRole('button',{name:'Ayarları aç',exact:true}).click();
+  assert.equal(await page.locator('#main-settings-panel').isVisible(),true);
+  await page.keyboard.press('Escape');
+  await page.locator('[data-tab="ilaclar"]').click();
+  assert.match(await page.locator('#notif-prompt').innerText(),/kurulum gerekiyor/);
+  assert.match(await page.locator('#notif-prompt').innerText(),/telefon alarmı/);
+  await page.locator('.drug-card').click();await page.getByRole('button',{name:/Düzenle/}).click();
+  await page.locator('#drug-daily').fill('1');assert.equal(await page.locator('#time-slots input').count(),1);
+  await page.getByRole('button',{name:'Kaydet',exact:true}).click();
+  assert.deepEqual((await state(page)).drugs[0].times,['08:00']);
+});
+
+test('Issue 7: storage erişimi reddedilince boş ekran veya sahte kayıt başarısı yok',async t=>{
+  const {page}=await profile(t,iphone,()=>{
+    Object.defineProperty(window,'localStorage',{get(){throw new DOMException('Denied','SecurityError');}});
+  });
+  assert.equal(await page.locator('#startup-status').count(),0);
+  assert.match(await page.getByRole('alert').innerText(),/yazma durduruldu/);
+  let message;page.on('dialog',d=>{message=d.message();return d.accept();});
+  await add(page,'Synthetic blocked');assert.match(message,/yazma durduruldu/);
+  assert.equal(await page.locator('#add-modal').evaluate(el=>el.classList.contains('open')),true);
+});
+
+test('Issue 7: JS dosyası yüklenmezse kurtarma uyarısı kalır, veri silinmez',async t=>{
+  const context=await browser.newContext(iphone);t.after(()=>context.close());
+  await context.route('**/*',route=>route.request().url().includes('/src/main.js')?route.abort():route.request().url().startsWith(base)?route.continue():route.abort());
+  await context.addInitScript(()=>localStorage.setItem('ilac_drugs_v2','synthetic-preserved'));
+  const page=await context.newPage();await page.goto(base,{waitUntil:'load'});
+  assert.match(await page.locator('#startup-status').innerText(),/başlatılamadı/);
+  assert.equal(await page.evaluate(()=>localStorage.ilac_drugs_v2),'synthetic-preserved');
+});
+
+test('Issue 7: yerel gece yarısında günlük doz durumu yenilenir',async t=>{
+  const {page}=await profile(t,iphone);page.on('dialog',d=>d.accept());
+  await page.clock.install({time:new Date('2026-11-04T20:59:30Z')});
+  await add(page,'Synthetic midnight');
+  await page.evaluate(()=>{
+    const d=drugs[0];takenLog[`${todayStr()}_${d.id}_08:00`]=true;saveLog(takenLog);renderAll();
+  });
+  const previous=await page.evaluate(()=>todayStr());
+  await page.clock.runFor(61000);
+  assert.notEqual(await page.evaluate(()=>todayStr()),previous);
+  await page.locator('[data-tab="bugun"]').click();
+  assert.equal(await page.locator('.alarm-item.dose-taken').count(),0);
+  assert.equal(await page.locator('.alarm-item.focus').count(),1);
+  assert.equal(Object.keys((await state(page)).log).length,1);
 });

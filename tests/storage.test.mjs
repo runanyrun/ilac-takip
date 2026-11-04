@@ -12,7 +12,7 @@ test('MVP: ilaç, alım ve geçmiş depolama turu', () => {
   const data = new Map();
   const c = functions('function loadDrugs()', 'function normalizeUsageCondition', {
     LS_DRUGS: 'drugs', LS_LOG: 'log', LS_HISTORY: 'history',
-    localStorage: { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v) }
+    localStorage: { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k) }
   });
   // Tamamen sentetik kayıtlar; kişisel veri veya abonelik kullanılmaz.
   c.saveDrugs([{ id: 1, name: 'Synthetic', stock: 30, daily: 1, times: ['08:00'], duration: 'omur_boyu' }]);
