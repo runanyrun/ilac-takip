@@ -93,7 +93,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20260420';
+const APP_VERSION = '20261104-final';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -493,7 +493,7 @@ function renderTimeSlots(times) {
   timeSlots=[...times];
   document.getElementById('time-slots').innerHTML = timeSlots.map((t,i)=>`
     <div class="time-slot">
-      <input type="time" value="${t}" onchange="timeSlots[${i}]=this.value">
+      <input type="time" value="${t}" oninput="timeSlots[${i}]=this.value" onchange="timeSlots[${i}]=this.value">
       
     </div>`).join('');
 }
@@ -553,7 +553,7 @@ function deleteDrug() {
   if (!editId || !confirm('Bu ilacı silmek istediğinden emin misin?')) return;
   logHistory(editId,'İlaç silindi');
   drugs = drugs.filter(d=>d.id!=editId);
-  saveDrugs(drugs); closeModal(); renderAll();
+  saveDrugs(drugs); closeModal(); renderAll(); scheduleAlarms();
   syncPushSchedule();
 }
 
@@ -691,7 +691,7 @@ function scheduleAlarms() {
       const ms = next-now;
       const timer = setTimeout(()=>{
         new Notification('💊 İlaç Zamanı!',{
-          body: `${d.name} — ${d.daily} adet alınacak`,
+          body: `${d.name} — planlanan ilaç saati ${t}`,
           tag: `drug_${d.id}_${t}`
         });
         scheduleAlarms();
