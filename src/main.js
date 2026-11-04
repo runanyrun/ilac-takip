@@ -181,7 +181,7 @@ function showUpdateToast() {
   const toast = document.createElement('div');
   toast.id = 'sw-update-toast';
   toast.setAttribute('style',
-    'position:fixed;left:12px;right:12px;bottom:calc(88px + env(safe-area-inset-bottom,0px));' +
+    'position:fixed;left:12px;right:12px;bottom:calc(165px + env(safe-area-inset-bottom,0px));' +
     'z-index:150;background:#1a3a5c;color:#fff;border-radius:14px;padding:10px 12px;' +
     'display:flex;align-items:center;justify-content:space-between;gap:10px;' +
     'box-shadow:0 8px 24px rgba(26,58,92,0.3);font:700 13px/1.2 Nunito,sans-serif;'
