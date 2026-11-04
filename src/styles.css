@@ -867,3 +867,33 @@ html,body{background:#f5f5f3;color:#171717;font-family:Arial,Helvetica,sans-seri
   max-width: 100%;
   font-size: clamp(78px, 20vw, 106px) !important;
 }
+
+
+/* Secondary doses are intentionally concise; the active dose retains its large photo. */
+#page-bugun .next-dose-row {
+  display: grid; grid-template-columns: 68px minmax(0,1fr) auto;
+  align-items: center; gap: 12px; padding: 12px 14px;
+  margin: 7px 0; border: 1px solid #e7e9e7; border-radius: 16px;
+  background: #fff; min-height: 72px;
+}
+#page-bugun .next-dose-time { font-size: 20px; font-weight: 900; color: #17344a; font-variant-numeric: tabular-nums; }
+#page-bugun .next-dose-info { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+#page-bugun .next-dose-info strong { font-size: 17px; overflow-wrap: anywhere; color: #182633; }
+#page-bugun .next-dose-status { font-size: 13px; font-weight: 700; color: #5a6870; }
+#page-bugun .next-dose-status.late { color: #a32932; }
+#page-bugun .next-dose-status.taken { color: #16734a; }
+#page-bugun .next-dose-action {
+  min-height: 46px; min-width: 72px; padding: 9px 12px; border: 1px solid #cbd8d3;
+  border-radius: 12px; background: #edf7f1; color: #145c3a; font: 800 14px Nunito, sans-serif;
+  cursor: pointer;
+}
+#page-bugun .next-dose-action:focus-visible { outline: 3px solid #194a80; outline-offset: 2px; }
+#app > .tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#app > .tabs .tab { font-size: 12px; min-width: 0; }
+#app > .tabs .tab-icon { font-size: 21px; }
+@media (max-width: 360px) {
+  #page-bugun .next-dose-row { grid-template-columns: 58px minmax(0,1fr) auto; gap: 7px; padding: 10px 9px; }
+  #page-bugun .next-dose-time { font-size: 17px; }
+  #page-bugun .next-dose-info strong { font-size: 15px; }
+  #page-bugun .next-dose-action { min-width: 62px; padding: 8px; }
+}
