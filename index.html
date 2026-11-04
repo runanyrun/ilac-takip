@@ -10,7 +10,7 @@
 <title>İlaç Takip</title>
 <link rel="manifest" href="manifest.json?v=20260420">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/styles.css?v=20261101-mono-live2">
+<link rel="stylesheet" href="src/styles.css?v=20261104-ux3">
 </head>
 <body>
 <div id="app">
@@ -20,18 +20,17 @@
         <h1>💊 İlaç Takip</h1>
         <p id="header-date"></p>
       </div>
-      <div class="header-actions">
-        <button type="button" class="menu-icon-trigger" id="main-settings-trigger" aria-label="Ayarlar menüsünü aç" aria-controls="main-settings-panel" aria-expanded="false" onclick="toggleMainSettings()"><span class="menu-lines" aria-hidden="true"><i></i><i></i><i></i></span></button>
-      </div>
+      <div class="header-actions"></div>
     </div>
   </div>
   <div class="settings-backdrop" id="settings-backdrop" hidden onclick="toggleMainSettings()"></div>
   <section class="main-settings-panel" id="main-settings-panel" hidden role="dialog" aria-modal="true" aria-label="Ayarlar" tabindex="-1"><div class="settings-drawer-top"><button class="settings-mobile-back" type="button" onclick="toggleMainSettings()" aria-label="Geri dön">←</button><div class="settings-panel-heading">AYARLAR</div><button class="settings-close" type="button" onclick="toggleMainSettings()" aria-label="Ayarları kapat">×</button></div><div class="settings-panel-label">İlaç fotoğrafı boyutu</div><div class="photo-size-control" role="group" aria-label="İlaç fotoğrafı boyutu"><button type="button" class="photo-size-option" data-photo-size="large" onclick="setFocusPhotoSize('large')">Büyük</button><button type="button" class="photo-size-option" data-photo-size="small" onclick="setFocusPhotoSize('small')">Küçük</button><button type="button" class="photo-size-option" data-photo-size="hidden" onclick="setFocusPhotoSize('hidden')">Gizle</button></div><div class="settings-panel-heading settings-extra-heading">DİĞER İŞLEMLER</div><div class="settings-action-list"><button type="button" onclick="requestNotif()">Bildirim izni</button><button type="button" onclick="exportData()">Verileri yedekle</button><button type="button" onclick="importData()">Yedekten geri yükle</button><button type="button" onclick="openCloudSetup()">Bulut test bağlantısı</button></div></section>
-  <div class="tabs">
-    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)">İlaçlar</button>
-    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)">Bugün</button>
-    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)">Geçmiş</button>
-  </div>
+  <nav class="tabs" aria-label="Ana gezinme">
+    <button class="tab" data-tab="ilaclar" onclick="switchTab('ilaclar',this)"><span class="nav-icon" aria-hidden="true">▦</span><span>İlaçlar</span></button>
+    <button class="tab active" data-tab="bugun" onclick="switchTab('bugun',this)"><span class="nav-icon" aria-hidden="true">◷</span><span>Bugün</span></button>
+    <button class="tab" data-tab="gecmis" onclick="switchTab('gecmis',this)"><span class="nav-icon" aria-hidden="true">▤</span><span>Geçmiş</span></button>
+    <button class="tab settings-nav-tab" type="button" id="main-settings-trigger" aria-controls="main-settings-panel" aria-expanded="false" onclick="toggleMainSettings()"><span class="nav-icon" aria-hidden="true">⚙</span><span>Ayarlar</span></button>
+  </nav>
   <div class="content">
     <div class="page" id="page-ilaclar">
       <div id="notif-prompt"></div>
@@ -78,7 +77,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Günde Kaç Adet</label>
-        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1">
+        <input type="number" class="form-input" id="drug-daily" min="1" max="10" value="1" onchange="syncDoseTimeSlots()">
       </div>
     </div>
     <div class="form-group">
@@ -96,7 +95,7 @@
     <div class="form-group">
       <label class="form-label">Alarm Saatleri</label>
       <div class="time-slots" id="time-slots"></div>
-      <button class="add-time-btn" style="margin-top:8px" onclick="addTimeSlot()">+ Saat Ekle</button>
+      <p class="form-hint">Her günlük doz için bir saat belirleyin. Saatleri reçetenize göre girin.</p>
     </div>
     <div class="form-group">
       <label class="form-label">Yemekle kullanım talimatı</label><p class="form-hint">İlaç kutusu, reçete veya eczacı talimatına göre seçin.</p>
@@ -172,6 +171,6 @@
 </script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script defer src="src/main.js?v=20261101-cloud"></script>
+<script defer src="src/main.js?v=20261104-ux3"></script>
 </body>
 </html>
