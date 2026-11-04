@@ -523,7 +523,7 @@ function saveDrug() {
   const dailyInput=document.getElementById('drug-daily');
   const daily=Number(dailyInput.value);
   if (!Number.isInteger(daily)||daily<1||daily>10) { alert('Günlük doz sayısı 1 ile 10 arasında olmalı.'); dailyInput.focus(); return; }
-  if (timeSlots.length!==daily || timeSlots.some(t=>!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t)) || new Set(timeSlots).size!==daily) {
+  if (timeSlots.length!==daily || timeSlots.some(t=>!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) || new Set(timeSlots).size!==daily) {
     alert('Her doz için farklı ve geçerli bir saat girin. Günlük doz sayısı ile saat sayısı eşit olmalı.'); return;
   }
   const drug = {
