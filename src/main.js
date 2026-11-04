@@ -115,7 +115,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261104-test1';
+const APP_VERSION = '20261104-ui2';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -322,15 +322,25 @@ function renderList(pending, done) {
   let html = '';
   if (pending.length) {
     html += `<div class="alarm-section-title">SONRAKİ DOZLAR <span class="mono-count">${pending.length}</span></div>`;
-    html += pending.map(i => alarmHTML(i, 'list')).join('');
+    html += pending.map(compactDoseHTML).join('');
   } else {
     html += `<div class="alarm-section-title">SONRAKİ DOZLAR</div><div class="empty-list-note">Başka bekleyen doz yok.</div>`;
   }
   if (done.length) {
     html += `<div class="alarm-section-title">GÜNLÜK KAYITLAR <span class="mono-count">${done.length}</span></div>`;
-    html += done.map(i => alarmHTML(i, 'list')).join('');
+    html += done.map(compactDoseHTML).join('');
   }
   return html;
+}
+
+function compactDoseHTML(i) {
+  const status = i.skipped ? 'Atlandı' : i.done ? 'Alındı' : i.overdue ? formatDelayText(i.diff) : 'Bekliyor';
+  const cls = i.done ? 'taken' : i.skipped ? 'skipped' : i.overdue ? 'late' : 'waiting';
+  return `<div class="next-dose-row">
+    <div class="next-dose-time">${safeDrugText(i.time)}</div>
+    <div class="next-dose-info"><strong>${safeDrugText(i.drug.name)}</strong><span class="next-dose-status ${cls}">${safeDrugText(status)}</span></div>
+    <button type="button" class="next-dose-action" onclick="${i.done || i.skipped ? 'undoDose' : 'toggleTaken'}('${i.key}')">${i.done || i.skipped ? 'Geri al' : 'Aldım'}</button>
+  </div>`;
 }
 
 function alarmHTML(i, variant='list') {
@@ -353,7 +363,7 @@ function alarmHTML(i, variant='list') {
   const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
   const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
-    ? `<div class="alarm-overdue-text" role="status">GECİKTİ · ${formatDelayText(i.diff)}</div>`
+    ? `<div class="alarm-overdue-text" role="status">${formatDelayText(i.diff)}</div>`
     : (!i.done && !i.skipped ? '<div class="alarm-waiting-text" role="status">BEKLİYOR</div>' : '');
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = ({tok:'TOK KARNINA',ac:'AÇ KARNINA',farketmez:'AÇ / TOK FARK ETMEZ',ozel:'ÖZEL TALİMAT',belirtilmedi:'TALİMAT BELİRTİLMEDİ'})[usageCondition];
@@ -564,7 +574,16 @@ function renderTimeSlots(times) {
       <button class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
     </div>`).join('');
 }
-function addTimeSlot()    { timeSlots.push('12:00'); renderTimeSlots(timeSlots); }
+function addTimeSlot() {
+  const daily = Number(document.getElementById('drug-daily').value);
+  if (Number.isSafeInteger(daily) && daily >= 1 && timeSlots.length >= daily) {
+    alert('Günde ' + daily + ' kullanım için en fazla ' + daily + ' saat seçebilirsiniz. Önce günlük kullanım sayısını değiştirin.');
+    return;
+  }
+  const candidates = ['08:00','12:00','16:00','20:00','22:00'];
+  timeSlots.push(candidates.find(t => !timeSlots.includes(t)) || '12:00');
+  renderTimeSlots(timeSlots);
+}
 function removeTimeSlot(i){ timeSlots.splice(i,1);   renderTimeSlots(timeSlots); }
 function toggleDuration() { document.getElementById('duration-days-wrap').style.display = document.getElementById('drug-duration').value==='sure'?'block':'none'; }
 function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElementById('stock-val').textContent=stockVal; }
@@ -579,6 +598,11 @@ function saveDrug() {
   }
   const daily = Number(document.getElementById('drug-daily').value);
   if (!Number.isSafeInteger(daily) || daily < 1 || daily > 10) { alert('Günlük adet 1 ile 10 arasında tam sayı olmalı.'); return; }
+  if (times.length !== daily) {
+    alert('Günde ' + daily + ' kullanım için tam ' + daily + ' farklı saat seçin. Bu sayı reçetenizdeki kullanım sıklığını temsil etmelidir.');
+    document.getElementById('drug-daily').focus();
+    return;
+  }
   const duration = document.getElementById('drug-duration').value;
   const days = document.getElementById('drug-days').value;
   if (duration === 'sure' && (!/^\d+$/.test(days) || Number(days) < 1 || !Number.isSafeInteger(Number(days)))) { alert('Kullanım süresini pozitif tam gün olarak yazın.'); return; }
