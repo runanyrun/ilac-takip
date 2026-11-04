@@ -103,15 +103,29 @@ renderAll();
 openDefaultTab();
 scheduleAlarms();
 checkNotifBanner();
-setInterval(updateHeaderDate, 60000);
+setInterval(() => {
+  updateHeaderDate();
+  renderToday();
+  renderStats();
+}, 60000);
+window.addEventListener('focus', () => {
+  updateHeaderDate();
+  renderAll();
+  scheduleAlarms();
+});
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    updateHeaderDate();
+    renderAll();
+    scheduleAlarms();
+  }
+});
 setTimeout(() => {
-  if (Notification.permission === 'granted') {
+  if ('Notification' in window && Notification.permission === 'granted') {
     setupWebPush().catch(()=>{});
     setupFirebaseMessaging().catch(()=>{});
   }
 }, 1200);
-
-saveDrugs(drugs);
 
 // ── SERVICE WORKER ──
 if ('serviceWorker' in navigator) {
@@ -616,6 +630,9 @@ async function requestNotif() {
   const p = await Notification.requestPermission();
   if (p !== 'granted') return;
   document.getElementById('notif-prompt').innerHTML='';
+  if (!PUSH_PUBLIC_KEY && !hasFirebaseConfig(FIREBASE_CONFIG)) {
+    alert('Bildirim izni verildi. Ancak arka plan bildirim servisi henüz yapılandırılmadı. Hatırlatmalar yalnızca uygulama açıkken güvenilir çalışabilir; telefonunuzun alarmını da kullanın.');
+  }
   await setupWebPush();
   await setupFirebaseMessaging();
   scheduleAlarms();
