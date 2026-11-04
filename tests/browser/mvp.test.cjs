@@ -431,3 +431,15 @@ test('Issue 7: yerel gece yarısında günlük doz durumu yenilenir',async t=>{
   assert.equal(await page.locator('.alarm-item.focus').count(),1);
   assert.equal(Object.keys((await state(page)).log).length,1);
 });
+
+test('Issue 7: eski HTML ve farklı bundle eşleşmezse kayıtlar açılışta değişmez',async t=>{
+  const context=await browser.newContext(iphone);t.after(()=>context.close());
+  const main=await readFile(resolve(__dirname,'../../src/main.js'),'utf8');
+  await context.route('**/*',route=>route.request().url().includes('/src/main.js')?route.fulfill({contentType:'text/javascript',body:main.replace("const APP_VERSION = '20261104-issue7-v1'","const APP_VERSION = 'different-release'")}):route.request().url().startsWith(base)?route.continue():route.abort());
+  await context.addInitScript(()=>localStorage.setItem('ilac_drugs_v2','synthetic-preserved'));
+  const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(base,{waitUntil:'load'});
+  assert.match(errors.join(' '),/sürümü uyuşmuyor/);
+  assert.match(await page.locator('#startup-status').innerText(),/başlatılamadı/);
+  assert.equal(await page.evaluate(()=>localStorage.ilac_drugs_v2),'synthetic-preserved');
+});

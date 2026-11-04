@@ -128,3 +128,12 @@ test('Divergent veya bozuk journal veriyi ezmez; yazmayı durdurur',()=>{
     assert.equal(f.values.get('drugs'),old);assert.equal(f.values.get('ilac_transaction_v1'),raw);
   }
 });
+
+test('SW aynı sürümün kurulu dosyasını ağdaki farklı bundle ile karıştırmaz',async()=>{
+  let response;
+  const version=source('sw.js').match(/const SW_VERSION = '([^']+)'/)[1];
+  const cached=new Response('installed');
+  const {listeners}=serviceWorker({fetch:async()=>{throw Error('Must use installed cache');},caches:{open:async()=>({match:async()=>cached})}});
+  listeners.get('fetch')({request:{method:'GET',url:'https://test.invalid/src/main.js?v='+version},respondWith:p=>{response=p;}});
+  assert.equal(await (await response).text(),'installed');
+});

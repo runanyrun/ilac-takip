@@ -1,3 +1,7 @@
+const APP_VERSION = '20261104-issue7-v1';
+// Stop before reading/writing records if stale HTML loaded a different bundle.
+const requestedVersion = document.currentScript && new URL(document.currentScript.src).searchParams.get('v');
+if (requestedVersion && requestedVersion !== APP_VERSION) throw new Error('Uygulama sürümü uyuşmuyor. Verileri silmeden yeniden yükleyin.');
 // ── STORAGE: localStorage ──
 const LS_DRUGS   = 'ilac_drugs_v2';
 const LS_LOG     = 'ilac_log_v2';
@@ -120,7 +124,6 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261104-issue7-v1';
 
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
@@ -577,7 +580,7 @@ function renderTimeSlots(times) {
   document.getElementById('time-slots').innerHTML = timeSlots.map((t,i)=>`
     <div class="time-slot">
       <input type="time" aria-label="${i+1}. doz saati" value="${safeDrugText(t)}" onchange="timeSlots[${i}]=this.value">
-      <button type="button" aria-label="${i+1}. doz saatini kaldır" class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
+      <button type="button" aria-label="${i+1}. doz saatini temizle" class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
     </div>`).join('');
 }
 function syncDailyTimes() {
@@ -588,11 +591,9 @@ function syncDailyTimes() {
   renderTimeSlots(Array.from({length:count}, (_, i) => current[i] || ''));
 }
 function addTimeSlot() {
-  const count = document.querySelectorAll('#time-slots input').length;
-  if (count >= 10) return;
-  document.getElementById('drug-daily').value = count + 1; syncDailyTimes();
+  alert('Saat sayısını reçetenize göre Günde Kaç Adet alanından değiştirin.');
 }
-function removeTimeSlot(i){ timeSlots=[...document.querySelectorAll('#time-slots input')].map(input=>input.value); timeSlots.splice(i,1); if (!timeSlots.length) timeSlots=['']; document.getElementById('drug-daily').value=timeSlots.length; renderTimeSlots(timeSlots); }
+function removeTimeSlot(i){ timeSlots=[...document.querySelectorAll('#time-slots input')].map(input=>input.value); timeSlots[i]=''; renderTimeSlots(timeSlots); }
 function syncDailyTimeHint() {
   const daily = Number(document.getElementById('drug-daily').value);
   const hint = document.getElementById('daily-time-hint');

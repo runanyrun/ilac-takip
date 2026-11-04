@@ -48,7 +48,14 @@ self.addEventListener('fetch', e => {
   }
 
   if (APP_SHELL_PATHS.has(url.pathname)) {
-    e.respondWith(networkFirst(e.request));
+    // Versioned files installed with this shell stay together across releases.
+    e.respondWith((async () => {
+      if (url.searchParams.get('v') === SW_VERSION) {
+        const cached = await (await caches.open(CACHE)).match(e.request);
+        if (cached) return cached;
+      }
+      return networkFirst(e.request);
+    })());
     return;
   }
 
