@@ -774,6 +774,131 @@ html,body{background:#f5f5f3;color:#171717;font-family:Arial,Helvetica,sans-seri
 #page-bugun .alarm-item.focus .alarm-skip-action{width:100%!important;min-height:44px!important;margin:0!important}
 @media(prefers-reduced-motion:reduce){#page-bugun .alarm-item.focus .alarm-overdue-text{animation:none}}
 
+/* Thumb-friendly bottom navigation: no overlay on medicine actions. */
+#app > .tabs {
+  order: 3;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 5px 10px max(8px, env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  border-top: 1px solid #e4e4e1;
+  border-bottom: 0;
+  box-shadow: 0 -3px 16px rgba(0,0,0,.025);
+  z-index: 5;
+}
+#app > .tabs .tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 54px;
+  padding: 7px 4px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+#app > .tabs .tab-icon { font-size: 22px; line-height: 1; font-weight: 500; }
+#app > .tabs .tab.active { background: #f1f1ef; }
+#app > .tabs .tab.active::after { display: none; }
+#app > .tabs .tab:focus-visible { outline: 3px solid #191919; outline-offset: -2px; }
+#app > .content { order: 2; min-height: 0; padding-bottom: 90px; }
+#app > .header { order: 1; }
+#app > #add-drug-fab { bottom: calc(85px + env(safe-area-inset-bottom, 0px)); }
+@media (max-height: 650px) {
+  #app > .tabs .tab { min-height: 48px; }
+  #app > .tabs .tab-icon { font-size: 19px; }
+}
+
+
+/* UX polish 2026-11-04: keep dose actions visible on compact iPhones and desktop previews. */
+#app > .content {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: 110px;
+  padding-bottom: max(110px, calc(96px + env(safe-area-inset-bottom, 0px)));
+}
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width: min(38vw, 148px) !important;
+  height: min(38vw, 148px) !important;
+  font-size: 60px !important;
+  border-radius: 20px !important;
+}
+#page-bugun .alarm-item.focus .alarm-image-wrap { margin-bottom: 4px !important; }
+#page-bugun .alarm-item.focus .alarm-name { font-size: clamp(24px, 6vw, 32px) !important; letter-spacing: -.7px !important; margin-top: 5px !important; }
+#page-bugun .alarm-item.focus .alarm-time { font-size: clamp(38px, 10vw, 52px) !important; letter-spacing: -1.4px !important; }
+#page-bugun .alarm-item.focus .alarm-overdue-text {
+  color: #98252e !important;
+  opacity: 1 !important;
+  animation: none !important;
+  background: #fae9eb !important;
+  border-radius: 10px !important;
+  padding: 7px 10px !important;
+}
+#page-bugun .alarm-item.focus .alarm-action-wrap {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px !important;
+}
+#page-bugun .alarm-item.focus .alarm-action,
+#page-bugun .alarm-item.focus .alarm-skip-action {
+  min-height: 48px !important;
+  height: auto !important;
+  padding: 10px 8px !important;
+  font-size: 14px !important;
+}
+#app > .tabs .tab { min-height: 50px; }
+#app > .tabs .tab-icon { font-size: 20px; }
+@media (max-width: 360px) {
+  #page-bugun .alarm-item.focus .alarm-action-wrap { grid-template-columns: 1fr; }
+  #page-bugun .alarm-item.focus .alarm-action,
+  #page-bugun .alarm-item.focus .alarm-skip-action { min-height: 46px !important; }
+}
+
+/* Accessibility correction: restore the intentionally large medicine picture. */
+#page-bugun .alarm-item.focus.photo-large .alarm-photo,
+#page-bugun .alarm-item.focus.photo-large .alarm-photo-placeholder {
+  width: min(74vw, 270px) !important;
+  height: min(74vw, 270px) !important;
+  max-width: 100%;
+  font-size: clamp(78px, 20vw, 106px) !important;
+}
+
+
+/* Secondary doses are intentionally concise; the active dose retains its large photo. */
+#page-bugun .next-dose-row {
+  display: grid; grid-template-columns: 68px minmax(0,1fr) auto;
+  align-items: center; gap: 12px; padding: 12px 14px;
+  margin: 7px 0; border: 1px solid #e7e9e7; border-radius: 16px;
+  background: #fff; min-height: 72px;
+}
+#page-bugun .next-dose-time { font-size: 20px; font-weight: 900; color: #17344a; font-variant-numeric: tabular-nums; }
+#page-bugun .next-dose-info { display: flex; flex-direction: column; min-width: 0; gap: 3px; }
+#page-bugun .next-dose-info strong { font-size: 17px; overflow-wrap: anywhere; color: #182633; }
+#page-bugun .next-dose-status { font-size: 13px; font-weight: 700; color: #5a6870; }
+#page-bugun .next-dose-status.late { color: #a32932; }
+#page-bugun .next-dose-status.taken { color: #16734a; }
+#page-bugun .next-dose-action {
+  min-height: 46px; min-width: 72px; padding: 9px 12px; border: 1px solid #cbd8d3;
+  border-radius: 12px; background: #edf7f1; color: #145c3a; font: 800 14px Nunito, sans-serif;
+  cursor: pointer;
+}
+#page-bugun .next-dose-action:focus-visible { outline: 3px solid #194a80; outline-offset: 2px; }
+#app > .tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+#app > .tabs .tab { font-size: 12px; min-width: 0; }
+#app > .tabs .tab-icon { font-size: 21px; }
+@media (max-width: 360px) {
+  #page-bugun .next-dose-row { grid-template-columns: 58px minmax(0,1fr) auto; gap: 7px; padding: 10px 9px; }
+  #page-bugun .next-dose-time { font-size: 17px; }
+  #page-bugun .next-dose-info strong { font-size: 15px; }
+  #page-bugun .next-dose-action { min-width: 62px; padding: 8px; }
+}
+
 /* Issue 7: retain large focus photo, make bottom navigation easy to tap. */
 .tabs .tab {min-height:48px;}
 .time-slot input,.time-slot-remove,.add-time-btn {min-height:44px;}
+

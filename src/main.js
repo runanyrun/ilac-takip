@@ -5,6 +5,7 @@ const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
 function focusPhotoSize() { try { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; } catch (_) { return 'large'; } }
+
 let mainSettingsOpen = false;
 let settingsPreviousFocus = null;
 function updateMainSettings() {
@@ -120,6 +121,7 @@ const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
 const APP_VERSION = '20261104-issue7-v1';
+
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -185,7 +187,7 @@ function showUpdateToast() {
   const toast = document.createElement('div');
   toast.id = 'sw-update-toast';
   toast.setAttribute('style',
-    'position:fixed;left:12px;right:12px;bottom:calc(88px + env(safe-area-inset-bottom,0px));' +
+    'position:fixed;left:12px;right:12px;bottom:calc(165px + env(safe-area-inset-bottom,0px));' +
     'z-index:150;background:#1a3a5c;color:#fff;border-radius:14px;padding:10px 12px;' +
     'display:flex;align-items:center;justify-content:space-between;gap:10px;' +
     'box-shadow:0 8px 24px rgba(26,58,92,0.3);font:700 13px/1.2 Nunito,sans-serif;'
@@ -213,10 +215,10 @@ function updateHeaderDate() {
 // ── TABS ──
 function switchTab(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.removeAttribute('aria-current'); });
   document.getElementById('page-'+name).classList.add('active');
   const tabEl = el || document.querySelector(`.tab[data-tab="${name}"]`);
-  if (tabEl) tabEl.classList.add('active');
+  if (tabEl) { tabEl.classList.add('active'); tabEl.setAttribute('aria-current', 'page'); }
   const addButton = document.getElementById('add-drug-fab');
   if (addButton) addButton.hidden = name !== 'ilaclar';
   if (name==='bugun')  renderToday();
@@ -326,15 +328,25 @@ function renderList(pending, done) {
   let html = '';
   if (pending.length) {
     html += `<div class="alarm-section-title">SONRAKİ DOZLAR <span class="mono-count">${pending.length}</span></div>`;
-    html += pending.map(i => alarmHTML(i, 'list')).join('');
+    html += pending.map(compactDoseHTML).join('');
   } else {
     html += `<div class="alarm-section-title">SONRAKİ DOZLAR</div><div class="empty-list-note">Başka bekleyen doz yok.</div>`;
   }
   if (done.length) {
     html += `<div class="alarm-section-title">GÜNLÜK KAYITLAR <span class="mono-count">${done.length}</span></div>`;
-    html += done.map(i => alarmHTML(i, 'list')).join('');
+    html += done.map(compactDoseHTML).join('');
   }
   return html;
+}
+
+function compactDoseHTML(i) {
+  const status = i.skipped ? 'Atlandı' : i.done ? 'Alındı' : i.overdue ? formatDelayText(i.diff) : 'Bekliyor';
+  const cls = i.done ? 'taken' : i.skipped ? 'skipped' : i.overdue ? 'late' : 'waiting';
+  return `<div class="next-dose-row">
+    <div class="next-dose-time">${safeDrugText(i.time)}</div>
+    <div class="next-dose-info"><strong>${safeDrugText(i.drug.name)}</strong><span class="next-dose-status ${cls}">${safeDrugText(status)}</span></div>
+    <button type="button" class="next-dose-action" onclick="${i.done || i.skipped ? 'undoDose' : 'toggleTaken'}('${i.key}')">${i.done || i.skipped ? 'Geri al' : 'Aldım'}</button>
+  </div>`;
 }
 
 function alarmHTML(i, variant='list') {
@@ -357,7 +369,7 @@ function alarmHTML(i, variant='list') {
   const takenAt = typeof takenLog[i.key] === 'string' ? new Date(takenLog[i.key]) : null;
   const takenText = takenAt && !isNaN(takenAt.getTime()) ? takenAt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}) : null;
   const overdueInfo = (!i.done && i.overdue)
-    ? `<div class="alarm-overdue-text" role="status">GECİKTİ · ${formatDelayText(i.diff)}</div>`
+    ? `<div class="alarm-overdue-text" role="status">${formatDelayText(i.diff)}</div>`
     : (!i.done && !i.skipped ? '<div class="alarm-waiting-text" role="status">BEKLİYOR</div>' : '');
   const usageCondition = normalizeUsageCondition(i.drug.usageCondition);
   const usageDisplay = ({tok:'TOK KARNINA',ac:'AÇ KARNINA',farketmez:'AÇ / TOK FARK ETMEZ',ozel:'ÖZEL TALİMAT',belirtilmedi:'TALİMAT BELİRTİLMEDİ'})[usageCondition];
@@ -461,9 +473,11 @@ function renderHistoryPage() {
     if (key) remaining.delete(key);
     const dt = new Date(h.ts);
     const ds = dt.toLocaleDateString('tr-TR')+' '+dt.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    // Keep stored action identifiers stable; use plain-language labels in the UI.
+    const actionLabel = ({ 'İlaç iadesi': 'Alınan doz geri alındı', 'Atlama geri alındı': 'Atlanan doz geri alındı' })[h.action] || h.action;
     return `<div class="history-item">
       <div class="history-dot" style="background:${colors[h.action]||'#7a8fa0'}"></div>
-      <div class="history-text"><strong>${safeDrugText(h.name)}</strong> — ${safeDrugText(h.action)}</div>
+      <div class="history-text"><strong>${safeDrugText(h.name)}</strong> — ${safeDrugText(actionLabel)}</div>
       <div class="history-date">${ds}</div>
       ${undoButton(key)}
     </div>`;
@@ -567,6 +581,7 @@ function renderTimeSlots(times) {
     </div>`).join('');
 }
 function syncDailyTimes() {
+  syncDailyTimeHint();
   const count = Number(document.getElementById('drug-daily').value);
   if (!Number.isSafeInteger(count) || count < 1 || count > 10) return;
   const current = [...document.querySelectorAll('#time-slots input')].map(input => input.value);
@@ -578,6 +593,14 @@ function addTimeSlot() {
   document.getElementById('drug-daily').value = count + 1; syncDailyTimes();
 }
 function removeTimeSlot(i){ timeSlots=[...document.querySelectorAll('#time-slots input')].map(input=>input.value); timeSlots.splice(i,1); if (!timeSlots.length) timeSlots=['']; document.getElementById('drug-daily').value=timeSlots.length; renderTimeSlots(timeSlots); }
+function syncDailyTimeHint() {
+  const daily = Number(document.getElementById('drug-daily').value);
+  const hint = document.getElementById('daily-time-hint');
+  if (hint) hint.textContent = Number.isSafeInteger(daily) && daily > 0
+    ? 'Günde ' + daily + ' kullanım için ' + daily + ' farklı saat seçin.'
+    : 'Günlük kullanım sayısını 1 ile 10 arasında girin.';
+}
+
 function toggleDuration() { document.getElementById('duration-days-wrap').style.display = document.getElementById('drug-duration').value==='sure'?'block':'none'; }
 function changeStock(d)   { stockVal=Math.max(0,stockVal+d); document.getElementById('stock-val').textContent=stockVal; }
 
@@ -591,7 +614,12 @@ function saveDrug() {
   }
   const daily = Number(document.getElementById('drug-daily').value);
   if (!Number.isSafeInteger(daily) || daily < 1 || daily > 10) { alert('Günlük adet 1 ile 10 arasında tam sayı olmalı.'); return; }
-  if (times.length !== daily) { alert('Günlük doz sayısı kadar farklı saat seçin.'); return; }
+  if (times.length !== daily) {
+    alert('Günde ' + daily + ' kullanım için tam ' + daily + ' farklı saat seçin. Bu sayı reçetenizdeki kullanım sıklığını temsil etmelidir.');
+    document.getElementById('drug-daily').focus();
+    return;
+  }
+
   const duration = document.getElementById('drug-duration').value;
   const days = document.getElementById('drug-days').value;
   if (duration === 'sure' && (!/^\d+$/.test(days) || Number(days) < 1 || !Number.isSafeInteger(Number(days)))) { alert('Kullanım süresini pozitif tam gün olarak yazın.'); return; }
@@ -683,13 +711,40 @@ function checkNotifBanner() {
     prompt.innerHTML += '<div class="notif-banner">ℹ️ Arka plan bildirimleri için iPhone’da uygulamayı ana ekrandan açın.</div>';
     return;
   }
-  if (Notification.permission === 'granted') return;
+  if (Notification.permission === 'granted') {
+    prompt.innerHTML += '<div class="notif-banner" role="status">ℹ️ Bildirim izni açık. Uygulama kapalıyken otomatik hatırlatma henüz garanti edilmiyor. <button type="button" onclick="testLocalNotification()">Bildirim Testi</button></div>';
+    return;
+  }
   if (Notification.permission === 'denied') {
     prompt.innerHTML += '<div class="notif-banner">Bildirim izni kapalı. İzni cihaz ayarlarından kontrol edebilirsiniz.</div>';
     return;
   }
-  prompt.innerHTML += `<div class="notif-banner">🔔 Alarm bildirimleri için izin ver
+  prompt.innerHTML += `<div class="notif-banner">🔔 Uygulama açıkken hatırlatma izni verilebilir. Arka planda otomatik hatırlatmalar henüz etkin değil.
+
     <button onclick="requestNotif()">İzin Ver</button></div>`;
+}
+
+async function testLocalNotification() {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+    alert('Önce bildirim izni verilmesi gerekiyor.');
+    return;
+  }
+  try {
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg && typeof reg.showNotification === 'function') {
+      await reg.showNotification('💊 İlaç Takip — Test', {
+        body: 'Bu yalnızca anlık bildirim testidir. Arka plan hatırlatmalarının çalıştığını doğrulamaz.',
+        tag: 'ilac-local-test'
+      });
+    } else {
+      new Notification('💊 İlaç Takip — Test', {
+        body: 'Bu yalnızca anlık bildirim testidir.',
+        tag: 'ilac-local-test'
+      });
+    }
+  } catch (_) {
+    alert('Test bildirimi gösterilemedi. Bildirim ayarlarını kontrol edin.');
+  }
 }
 
 async function requestNotif() {

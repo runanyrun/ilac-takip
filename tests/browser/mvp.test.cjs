@@ -51,6 +51,23 @@ async function add(page, name = 'Synthetic') {
 const state = page => page.evaluate(() => ({ drugs: JSON.parse(localStorage.ilac_drugs_v2 || '[]'),
   log: JSON.parse(localStorage.ilac_log_v2 || '{}'), history: JSON.parse(localStorage.ilac_history_v2 || '[]') }));
 
+test('Alt gezinme: sayfalar erişilebilir, seçili sekme belirtilir ve ekle düğmesi doğru yerde görünür', async t => {
+  const { page } = await profile(t);
+  const tabs = page.locator('#app > nav.tabs');
+  assert.equal(await tabs.count(), 1);
+  assert.equal(await tabs.locator('.tab').count(), 4);
+  assert.equal(await tabs.locator('[aria-current="page"]').getAttribute('data-tab'), 'bugun');
+  const bottom = await tabs.boundingBox();
+  const content = await page.locator('#app > .content').boundingBox();
+  assert.ok(bottom && content && bottom.y >= content.y + content.height - 2);
+  await tabs.locator('[data-tab="ilaclar"]').click();
+  assert.equal(await tabs.locator('[aria-current="page"]').getAttribute('data-tab'), 'ilaclar');
+  assert.equal(await page.locator('#add-drug-fab').isVisible(), true);
+  await tabs.locator('[data-tab="gecmis"]').click();
+  assert.equal(await tabs.locator('[aria-current="page"]').getAttribute('data-tab'), 'gecmis');
+  assert.equal(await page.locator('#add-drug-fab').isVisible(), false);
+});
+
 test('MVP tarayıcı: CRUD, alım/geri alma/atlama, geçmiş ve offline veri kalıcılığı', async t => {
   const { page, context } = await profile(t);
   page.on('dialog', dialog => dialog.accept());
@@ -193,6 +210,7 @@ for (const skipped of [false, true]) {
     assert.deepEqual(after.log, expectedLog);
     assert.deepEqual(after.history.slice(1), data.history);
     assert.equal(after.history[0].action, skipped ? 'Atlama geri alındı' : 'İlaç iadesi');
+    assert.equal(await page.locator('.history-text').filter({ hasText: skipped ? 'Atlanan doz geri alındı' : 'Alınan doz geri alındı' }).count(), 1);
     assert.equal(await button.count(), 0);
     // A stale history action must never turn into another ALDIM or refund twice.
     await page.evaluate(key => undoDose(key), key);
@@ -365,7 +383,7 @@ test('Issue 7: 1/2 doz, büyük fotoğraf, kompakt liste ve altta Ayarlar',async
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__ILAC_READY__);
   await page.locator('[data-tab="bugun"]').click();
   const big=await page.locator('.alarm-item.focus .alarm-photo').boundingBox();
-  assert.ok(big.width>=200);assert.equal(await page.locator('.alarm-item.compact').count(),1);
+  assert.ok(big.width>=200);assert.equal(await page.locator('.next-dose-row').count(),1);
   await page.getByRole('button',{name:'Ayarları aç',exact:true}).click();
   assert.equal(await page.locator('#main-settings-panel').isVisible(),true);
   await page.keyboard.press('Escape');
