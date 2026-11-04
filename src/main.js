@@ -574,6 +574,13 @@ function renderTimeSlots(times) {
       <button class="time-slot-remove" onclick="removeTimeSlot(${i})">×</button>
     </div>`).join('');
 }
+function syncDailyTimeHint() {
+  const daily = Number(document.getElementById('drug-daily').value);
+  const hint = document.getElementById('daily-time-hint');
+  if (hint) hint.textContent = Number.isSafeInteger(daily) && daily > 0
+    ? 'Günde ' + daily + ' kullanım için ' + daily + ' farklı saat seçin.'
+    : 'Günlük kullanım sayısını 1 ile 10 arasında girin.';
+}
 function addTimeSlot() {
   const daily = Number(document.getElementById('drug-daily').value);
   if (Number.isSafeInteger(daily) && daily >= 1 && timeSlots.length >= daily) {
