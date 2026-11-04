@@ -115,7 +115,7 @@ const PUSH_PUBLIC_KEY = window.__PUSH_PUBLIC_KEY__ || '';
 const PUSH_SERVER_BASE_URL = window.__PUSH_SERVER_BASE_URL__ || '';
 const FIREBASE_CONFIG = window.__FIREBASE_CONFIG__ || {};
 const FCM_VAPID_KEY = 'BOFQ_64qgW2NEoJRSWXTA3KbOaN3R-P2ztpaXRfuHuKD8BdCGkAPyMO5AetHyVgZbdKAOpWY5obK3cls6T2Yf5o';
-const APP_VERSION = '20261103-app3';
+const APP_VERSION = '20261104-alert1';
 let fcmSwRegistrationPromise = null;
 let fcmOnMessageBound = false;
 
@@ -670,12 +670,15 @@ function checkNotifBanner() {
     prompt.innerHTML = '<div class="notif-banner">ℹ️ Arka plan bildirimleri için iPhone’da uygulamayı ana ekrandan açın.</div>';
     return;
   }
-  if (Notification.permission === 'granted') return;
+  if (Notification.permission === 'granted') {
+    prompt.innerHTML = '<div class="notif-banner" role="status">ℹ️ Bildirim izni açık; ancak arka planda otomatik hatırlatma sunucusu henüz etkin değil. Uygulama kapalıyken bildirim garantisi yoktur.</div>';
+    return;
+  }
   if (Notification.permission === 'denied') {
     prompt.innerHTML = '<div class="notif-banner">Bildirim izni kapalı. İzni cihaz ayarlarından kontrol edebilirsiniz.</div>';
     return;
   }
-  prompt.innerHTML = `<div class="notif-banner">🔔 Alarm bildirimleri için izin ver
+  prompt.innerHTML = `<div class="notif-banner">🔔 Uygulama açıkken hatırlatma izni verilebilir. Arka planda otomatik hatırlatmalar henüz etkin değil.
     <button onclick="requestNotif()">İzin Ver</button></div>`;
 }
 
