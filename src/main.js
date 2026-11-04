@@ -556,18 +556,29 @@ function saveDrug() {
     stock:    stockVal,
     usageCondition,
   };
-  if (editId) { const idx=drugs.findIndex(d=>d.id==editId); drugs[idx]=normalizeDrug(drug); }
-  else { drugs.push(normalizeDrug(drug)); logHistory(drug.id,'İlaç eklendi'); }
-  saveDrugs(drugs);
+  const nextDrugs = editId
+    ? drugs.map(d => d.id == editId ? normalizeDrug(drug) : d)
+    : [...drugs, normalizeDrug(drug)];
+  try {
+    saveDrugs(nextDrugs);
+  } catch (error) {
+    alert('İlaç kaydedilemedi. Cihazın depolama alanı dolu olabilir. Fotoğrafı küçültüp tekrar deneyin veya Ayarlar bölümünden yedek alın.');
+    return;
+  }
+  drugs = nextDrugs;
+  if (!editId) logHistory(drug.id, 'İlaç eklendi');
   closeModal(); renderAll(); scheduleAlarms();
   syncPushSchedule();
 }
 
 function deleteDrug() {
   if (!editId || !confirm('Bu ilacı silmek istediğinden emin misin?')) return;
+  const nextDrugs = drugs.filter(d=>d.id!=editId);
+  try { saveDrugs(nextDrugs); }
+  catch (error) { alert('Silme işlemi kaydedilemedi. Depolama alanını kontrol edin.'); return; }
   logHistory(editId,'İlaç silindi');
-  drugs = drugs.filter(d=>d.id!=editId);
-  saveDrugs(drugs); closeModal(); renderAll(); scheduleAlarms();
+  drugs = nextDrugs;
+  closeModal(); renderAll(); scheduleAlarms();
   syncPushSchedule();
 }
 
