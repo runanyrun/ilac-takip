@@ -4,7 +4,7 @@ const LS_LOG     = 'ilac_log_v2';
 const LS_HISTORY = 'ilac_history_v2';
 const LS_FCM_TOKEN = 'ilac_fcm_token_v1';
 const LS_PHOTO_SIZE = 'ilac_focus_photo_size_v1';
-function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['small','hidden'].includes(v) ? v : 'large'; }
+function focusPhotoSize() { const v=localStorage.getItem(LS_PHOTO_SIZE); return ['large','small','hidden'].includes(v) ? v : 'small'; }
 let mainSettingsOpen = false;
 let settingsPreviousFocus = null;
 function updateMainSettings() {
