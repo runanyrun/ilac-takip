@@ -31,7 +31,7 @@ before(async () => {
 after(async () => { await browser?.close(); await new Promise(resolve => server?.close(resolve) || resolve()); });
 
 async function profile(t, options = {}, initialize) {
-  const context = await browser.newContext(options);
+  const context = await browser.newContext({ serviceWorkers: 'block', ...options });
   if (initialize) await context.addInitScript(initialize); t.after(() => context.close());
   // Test the local MVP only. No Firebase SDK, fonts, live API or push provider calls.
   await context.route('**/*', route => route.request().url().startsWith(base) ? route.continue() : route.abort());
